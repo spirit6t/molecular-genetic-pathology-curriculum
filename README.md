@@ -1,70 +1,187 @@
-# Getting Started with Create React App
+# 🧬 Molecular Genetic Pathology Curriculum
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A comprehensive React-based curriculum management application designed for molecular genetic pathology education and training. This application provides a structured 2-year curriculum with interactive scheduling, project management, question banks, and learning resources.
 
-## Available Scripts
+## ✨ Features
 
-In the project directory, you can run:
+### 📚 **2-Year Curriculum Planner**
+- **24-Month Timeline**: Complete curriculum spanning 2 years with monthly topics
+- **Interactive Scheduling**: Drag-and-drop scheduling with custom start dates
+- **Progress Tracking**: Visual progress indicators and completion status
+- **Subtopic Management**: Detailed subtopic tracking with checkboxes
 
-### `npm start`
+### 📅 **Smart Scheduling System**
+- **Flexible Start Dates**: Choose any program start date
+- **Monthly Planning**: Schedule topics for specific months
+- **Date Management**: Edit and update scheduled dates
+- **Bulk Operations**: Schedule entire months at once
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 📋 **Project Management**
+- **Dynamic Projects**: Add, edit, and remove projects
+- **Due Date Tracking**: Set and monitor project deadlines
+- **Deliverables**: Track multiple project deliverables
+- **Topic Association**: Link projects to curriculum topics
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### ❓ **Question Bank System**
+- **Board Questions**: Comprehensive question database
+- **Multiple Choice**: A, B, C, D format questions
+- **Difficulty Levels**: Easy, Medium, Hard classifications
+- **Topic Filtering**: Questions organized by curriculum topics
+- **Add Questions**: Create and add new questions dynamically
 
-### `npm test`
+### 📖 **Learning Resources**
+- **Textbooks**: Comprehensive textbook database with ISBN tracking
+- **Journals**: Key journals with impact factors and direct links
+- **Web Resources**: Curated links to useful online resources
+- **Resource Management**: Add new resources with topic associations
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 🎯 **Interactive Features**
+- **Real-time Updates**: Live data synchronization
+- **Responsive Design**: Works on desktop, tablet, and mobile
+- **Modern UI**: Clean, intuitive interface with Tailwind CSS
+- **Local Storage**: Data persistence across sessions
 
-### `npm run build`
+## 🚀 Getting Started
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Prerequisites
+- Node.js (v14 or higher)
+- npm or yarn
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Installation
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/molecular-genetic-pathology-curriculum.git
+   cd molecular-genetic-pathology-curriculum
+   ```
 
-### `npm run eject`
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+3. **Start the development server**
+   ```bash
+   npm start
+   ```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+4. **Open your browser**
+   Navigate to `http://localhost:3000`
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Building for Production
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```bash
+npm run build
+```
 
-## Learn More
+This creates a `build` folder with optimized production files.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 📖 Usage Guide
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Setting Up Your Curriculum
 
-### Code Splitting
+1. **Choose Start Date**: Navigate to "2-Year Planner" and select your program start date
+2. **Schedule Topics**: Use "Schedule All" to populate a month or schedule individual topics
+3. **Track Progress**: Check off subtopics as you complete them
+4. **Manage Projects**: Add projects with due dates and deliverables
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Adding Questions
 
-### Analyzing the Bundle Size
+1. Go to "Questions" tab
+2. Click "Add New Question"
+3. Fill in question details, options, and correct answer
+4. Select topic and difficulty level
+5. Click "Add Question"
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Managing Resources
 
-### Making a Progressive Web App
+1. Navigate to "Resources" tab
+2. Click "Add Resource"
+3. Choose resource type (Book/Journal/Link)
+4. Fill in relevant details
+5. Associate with curriculum topics
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 🏗️ Technical Architecture
 
-### Advanced Configuration
+### Frontend Stack
+- **React 19**: Modern React with hooks
+- **Tailwind CSS**: Utility-first CSS framework
+- **React Router**: Client-side routing
+- **Framer Motion**: Smooth animations
+- **React Hook Form**: Form management
+- **React Hot Toast**: Notifications
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### Key Components
+- `App.js`: Main application component with routing
+- `curriculumData.js`: Curriculum data and structure
+- `Dashboard`: Overview and statistics
+- `CurriculumView`: Topic browsing and management
+- `ScheduleView`: Calendar and scheduling interface
+- `ProjectsView`: Project management
+- `QuestionsView`: Question bank interface
+- `ResourcesView`: Learning resources management
 
-### Deployment
+### Data Structure
+- **Topics**: Curriculum topics with subtopics and metadata
+- **Schedule**: Time-based topic assignments
+- **Projects**: Project definitions with deliverables
+- **Questions**: Question bank with multiple choice format
+- **Resources**: Books, journals, and web links
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## 🎨 Customization
 
-### `npm run build` fails to minify
+### Adding New Topics
+Edit `src/curriculumData.js` to add new curriculum topics:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```javascript
+{
+  id: 8,
+  topic: "Your New Topic",
+  level: "Core",
+  duration: "2 weeks",
+  focus: "Topic description",
+  subtopics: ["Subtopic 1", "Subtopic 2"]
+}
+```
+
+### Modifying Curriculum Timeline
+Update the `twoYearCurriculum` object in `curriculumData.js` to modify the 2-year timeline.
+
+### Styling
+The app uses Tailwind CSS. Modify `src/index.css` or component classes for custom styling.
+
+## 📱 Browser Support
+
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Medical education community for curriculum insights
+- React and open-source community for excellent tools
+- Molecular genetic pathology educators for domain expertise
+
+## 📞 Support
+
+For questions, issues, or contributions, please:
+- Open an issue on GitHub
+- Contact the maintainers
+- Check the documentation
+
+---
+
+**Built with ❤️ for medical education**
