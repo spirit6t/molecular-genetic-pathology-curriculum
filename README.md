@@ -185,3 +185,5 @@ For questions, issues, or contributions, please:
 ---
 
 **Built with ❤️ for medical education**
+
+*Last updated: December 2024*
