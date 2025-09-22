@@ -2,7 +2,7 @@
   "name": "molecular-genetic-pathology-curriculum",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://yourusername.github.io/molecular-genetic-pathology-curriculum",
+  "homepage": "https://spirit6t.github.io/molecular-genetic-pathology-curriculum",
   "dependencies": {
     "@headlessui/react": "^2.2.8",
     "@testing-library/dom": "^10.4.1",

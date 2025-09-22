@@ -51,7 +51,7 @@ A comprehensive React-based curriculum management application designed for molec
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/molecular-genetic-pathology-curriculum.git
+   git clone https://github.com/spirit6t/molecular-genetic-pathology-curriculum.git
    cd molecular-genetic-pathology-curriculum
    ```
 
