@@ -364,8 +364,8 @@ function ScheduleView({ schedule, toggleScheduleItem, updateScheduleItemDate, re
 
   const groupedSchedule = schedule.reduce((acc, item) => {
     // Parse the date properly to avoid timezone issues
-    const [year, month, day] = item.date.split('-').map(Number);
-    const dateObj = new Date(year, month - 1, day);
+    const [year, monthNum, day] = item.date.split('-').map(Number);
+    const dateObj = new Date(year, monthNum - 1, day);
     const monthKey = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     if (!acc[monthKey]) acc[monthKey] = [];
     acc[monthKey].push(item);
@@ -1440,8 +1440,8 @@ function CurriculumPlannerView({ schedule, addToSchedule }) {
 
     monthData.topics.forEach((topic, index) => {
       // Parse the calculated first day properly
-      const [year, month, day] = scheduleData.firstDay.split('-').map(Number);
-      const sessionDate = new Date(year, month - 1, day + (index * 7)); // Space sessions weekly
+      const [year, monthNum, day] = scheduleData.firstDay.split('-').map(Number);
+      const sessionDate = new Date(year, monthNum - 1, day + (index * 7)); // Space sessions weekly
 
       console.log(`Scheduling topic ${index + 1}: ${topic.topic} for ${sessionDate.toISOString().split('T')[0]}`);
 
