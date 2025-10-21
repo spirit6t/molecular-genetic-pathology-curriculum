@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "question": "Which statement is incorrect?",
+    "options": [
+      " Each cell uses different part of the genetic information to perform the functions of the cell.",
+      "Every cell in the human body has the same genetic information.",
+      "There are 23 autosomal chromosomes.",
+      "Adenine-Thymine pairs have 2 hydrogen bonds."
+    ],
+    "correctAnswer": 2,
+    "explanation": "There are 22 autosomal chromosomes and one sex chromosome.",
+    "topic": 1,
+    "subtopic": "Chromosome",
+    "level": "Core",
+    "difficulty": "Medium",
+    "id": 1761079301493,
+    "isCustom": true,
+    "createdAt": "2025-10-21T20:41:41.493Z"
+  }
+]
