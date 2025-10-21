@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/molecular-genetic-pathology-curriculum/static/css/main.814c87c1.css",
-    "main.js": "/molecular-genetic-pathology-curriculum/static/js/main.5ff7d9b5.js",
+    "main.css": "/molecular-genetic-pathology-curriculum/static/css/main.9100937a.css",
+    "main.js": "/molecular-genetic-pathology-curriculum/static/js/main.744a767a.js",
     "static/js/453.7c8176c0.chunk.js": "/molecular-genetic-pathology-curriculum/static/js/453.7c8176c0.chunk.js",
     "index.html": "/molecular-genetic-pathology-curriculum/index.html",
-    "main.814c87c1.css.map": "/molecular-genetic-pathology-curriculum/static/css/main.814c87c1.css.map",
-    "main.5ff7d9b5.js.map": "/molecular-genetic-pathology-curriculum/static/js/main.5ff7d9b5.js.map",
+    "main.9100937a.css.map": "/molecular-genetic-pathology-curriculum/static/css/main.9100937a.css.map",
+    "main.744a767a.js.map": "/molecular-genetic-pathology-curriculum/static/js/main.744a767a.js.map",
     "453.7c8176c0.chunk.js.map": "/molecular-genetic-pathology-curriculum/static/js/453.7c8176c0.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.814c87c1.css",
-    "static/js/main.5ff7d9b5.js"
+    "static/css/main.9100937a.css",
+    "static/js/main.744a767a.js"
   ]
 }
