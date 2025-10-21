@@ -41,3 +41,16 @@ pids
 
 # OS generated files
 Thumbs.db
+*.stackdump
+
+# Temporary files
+nul
+
+# Files from other projects (not part of molecular-genetic-pathology-curriculum)
+src/LabInformaticsCurriculum.tsx
+src/labInformaticsData.ts
+src/AssignmentManager.js
+src/PracticalExercisesManager.js
+src/stockData.js
+src/stockAnalysis.js
+Thumbs.db

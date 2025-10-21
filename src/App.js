@@ -7,12 +7,18 @@ function App() {
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [selectedLevel, setSelectedLevel] = useState('All');
   const [schedule, setSchedule] = useState([]);
+  const [customQuestions, setCustomQuestions] = useState([]);
 
-  // Load saved schedule from localStorage
+  // Load saved schedule and custom questions from localStorage
   useEffect(() => {
     const savedSchedule = localStorage.getItem('curriculumSchedule');
     if (savedSchedule) {
       setSchedule(JSON.parse(savedSchedule));
+    }
+
+    const savedQuestions = localStorage.getItem('customBoardQuestions');
+    if (savedQuestions) {
+      setCustomQuestions(JSON.parse(savedQuestions));
     }
   }, []);
 
@@ -77,6 +83,37 @@ function App() {
     saveSchedule(updatedSchedule);
   };
 
+  // Custom Questions Management
+  const addCustomQuestion = (question) => {
+    const newQuestion = {
+      ...question,
+      id: Date.now(),
+      isCustom: true,
+      createdAt: new Date().toISOString()
+    };
+    const updatedQuestions = [...customQuestions, newQuestion];
+    setCustomQuestions(updatedQuestions);
+    localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+    return newQuestion;
+  };
+
+  const updateCustomQuestion = (questionId, updatedQuestion) => {
+    const updatedQuestions = customQuestions.map(q =>
+      q.id === questionId ? { ...q, ...updatedQuestion, updatedAt: new Date().toISOString() } : q
+    );
+    setCustomQuestions(updatedQuestions);
+    localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+  };
+
+  const deleteCustomQuestion = (questionId) => {
+    const updatedQuestions = customQuestions.filter(q => q.id !== questionId);
+    setCustomQuestions(updatedQuestions);
+    localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+  };
+
+  // Combine default and custom questions
+  const allQuestions = [...boardQuestions, ...customQuestions];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
@@ -105,7 +142,7 @@ function App() {
                 onClick={() => setCurrentView('curriculum')}
                 className={`px-3 py-2 rounded-md text-sm font-medium ${currentView === 'curriculum' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-blue-600'}`}
               >
-                Curriculum
+                MGP Curriculum
               </button>
               <button
                 onClick={() => setCurrentView('schedule')}
@@ -149,7 +186,7 @@ function App() {
         {currentView === 'schedule' && <ScheduleView schedule={schedule} toggleScheduleItem={toggleScheduleItem} updateScheduleItemDate={updateScheduleItemDate} removeScheduleItem={removeScheduleItem} toggleSubtopic={toggleSubtopic} />}
         {currentView === 'resources' && <ResourcesView />}
         {currentView === 'projects' && <ProjectsView />}
-        {currentView === 'questions' && <QuestionsView />}
+        {currentView === 'questions' && <QuestionsView questions={allQuestions} onAddQuestion={addCustomQuestion} onUpdateQuestion={updateCustomQuestion} onDeleteQuestion={deleteCustomQuestion} />}
         {currentView === 'planner' && <CurriculumPlannerView schedule={schedule} addToSchedule={addToSchedule} />}
       </main>
     </div>
@@ -1077,10 +1114,11 @@ function ProjectsView() {
 }
 
 // Questions Component
-function QuestionsView() {
+function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQuestion }) {
   const [userAnswers, setUserAnswers] = useState({});
   const [showResults, setShowResults] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState(null);
   const [newQuestion, setNewQuestion] = useState({
     question: '',
     options: ['', '', '', ''],
@@ -1103,7 +1141,7 @@ function QuestionsView() {
     let correct = 0;
     let total = 0;
 
-    boardQuestions.forEach(question => {
+    questions.forEach(question => {
       if (userAnswers[question.id] !== undefined) {
         total++;
         if (userAnswers[question.id] === question.correctAnswer) {
@@ -1117,9 +1155,16 @@ function QuestionsView() {
 
   const handleAddQuestion = () => {
     if (newQuestion.question.trim() && newQuestion.options.every(opt => opt.trim())) {
-      // In a real app, you'd save this to a database
-      // For now, we'll just show a success message
-      alert('Question added successfully! (Note: This is a demo - questions are not permanently saved)');
+      if (editingQuestion) {
+        // Update existing question
+        onUpdateQuestion(editingQuestion.id, newQuestion);
+        alert('Question updated successfully!');
+        setEditingQuestion(null);
+      } else {
+        // Add new question
+        onAddQuestion(newQuestion);
+        alert('Question added successfully!');
+      }
 
       // Reset form
       setNewQuestion({
@@ -1138,6 +1183,91 @@ function QuestionsView() {
     }
   };
 
+  const handleEditQuestion = (question) => {
+    setNewQuestion({
+      question: question.question,
+      options: question.options,
+      correctAnswer: question.correctAnswer,
+      explanation: question.explanation || '',
+      topic: question.topic,
+      subtopic: question.subtopic || '',
+      level: question.level || 'Core',
+      difficulty: question.difficulty || 'Medium'
+    });
+    setEditingQuestion(question);
+    setShowAddForm(true);
+  };
+
+  const handleDeleteQuestion = (questionId) => {
+    if (window.confirm('Are you sure you want to delete this question?')) {
+      onDeleteQuestion(questionId);
+      alert('Question deleted successfully!');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setNewQuestion({
+      question: '',
+      options: ['', '', '', ''],
+      correctAnswer: 0,
+      explanation: '',
+      topic: 1,
+      subtopic: '',
+      level: 'Core',
+      difficulty: 'Medium'
+    });
+    setEditingQuestion(null);
+    setShowAddForm(false);
+  };
+
+  const handleExportQuestions = () => {
+    const customQuestionsOnly = questions.filter(q => q.isCustom);
+    const dataStr = JSON.stringify(customQuestionsOnly, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'customQuestions.json';
+    link.click();
+    URL.revokeObjectURL(url);
+    alert(`Exported ${customQuestionsOnly.length} custom questions to customQuestions.json`);
+  };
+
+  const handleImportQuestions = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const importedQuestions = JSON.parse(e.target.result);
+          if (Array.isArray(importedQuestions)) {
+            // Add each imported question
+            importedQuestions.forEach(q => {
+              onAddQuestion({
+                question: q.question,
+                options: q.options,
+                correctAnswer: q.correctAnswer,
+                explanation: q.explanation || '',
+                topic: q.topic,
+                subtopic: q.subtopic || '',
+                level: q.level || 'Core',
+                difficulty: q.difficulty || 'Medium'
+              });
+            });
+            alert(`Successfully imported ${importedQuestions.length} questions!`);
+            // Reset file input
+            event.target.value = '';
+          } else {
+            alert('Invalid file format. Expected an array of questions.');
+          }
+        } catch (error) {
+          alert('Error parsing JSON file: ' + error.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
   const handleOptionChange = (index, value) => {
     const newOptions = [...newQuestion.options];
     newOptions[index] = value;
@@ -1150,7 +1280,7 @@ function QuestionsView() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold text-gray-900">Board Questions Bank</h2>
-        <div className="flex space-x-4">
+        <div className="flex flex-wrap gap-2">
           {Object.keys(userAnswers).length > 0 && (
             <button
               onClick={() => setShowResults(!showResults)}
@@ -1165,9 +1295,21 @@ function QuestionsView() {
           >
             {showAddForm ? 'Cancel' : 'Add Question'}
           </button>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-            Generate Quiz
+          <button
+            onClick={handleExportQuestions}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            📤 Export
           </button>
+          <label className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer">
+            📥 Import
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImportQuestions}
+              className="hidden"
+            />
+          </label>
         </div>
       </div>
 
@@ -1183,7 +1325,7 @@ function QuestionsView() {
 
       {showAddForm && (
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">Add New Question</h3>
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">{editingQuestion ? 'Edit Question' : 'Add New Question'}</h3>
           <div className="space-y-4">
             {/* Question Text */}
             <div>
@@ -1292,7 +1434,7 @@ function QuestionsView() {
             {/* Action Buttons */}
             <div className="flex justify-end space-x-4 pt-4">
               <button
-                onClick={() => setShowAddForm(false)}
+                onClick={handleCancelEdit}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Cancel
@@ -1301,7 +1443,7 @@ function QuestionsView() {
                 onClick={handleAddQuestion}
                 className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
               >
-                Add Question
+                {editingQuestion ? 'Update Question' : 'Add Question'}
               </button>
             </div>
           </div>
@@ -1309,13 +1451,18 @@ function QuestionsView() {
       )}
 
       <div className="space-y-6">
-        {boardQuestions.map((question, index) => (
+        {questions.map((question, index) => (
           <div key={question.id} className="bg-white rounded-lg shadow-lg p-6">
             <div className="flex justify-between items-start mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Question {index + 1}: {question.question}
-              </h3>
-              <div className="flex space-x-2">
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Question {index + 1}: {question.question}
+                </h3>
+                {question.isCustom && (
+                  <span className="inline-block mt-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Custom Question</span>
+                )}
+              </div>
+              <div className="flex items-start space-x-2">
                 <span className={`px-2 py-1 rounded-full text-xs ${question.level === 'Core' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
                   }`}>
                   {question.level}
@@ -1326,6 +1473,22 @@ function QuestionsView() {
                   }`}>
                   {question.difficulty}
                 </span>
+                {question.isCustom && (
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleEditQuestion(question)}
+                      className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteQuestion(question.id)}
+                      className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
