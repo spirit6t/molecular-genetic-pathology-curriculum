@@ -13,8 +13,206 @@
     "subtopic": "Chromosome",
     "level": "Core",
     "difficulty": "Medium",
-    "id": 1761079301493,
+    "id": 1761080537272,
     "isCustom": true,
-    "createdAt": "2025-10-21T20:41:41.493Z"
+    "createdAt": "2025-10-21T21:02:17.272Z"
+  },
+  {
+    "question": "Which statement is incorrect?",
+    "options": [
+      "Sequence of DNA bases along the sugar phosphate backbone is read in 5' to 3' direction.",
+      "Adenine only pairs with Thymine.",
+      "RNA is a single-stranded molecule.",
+      "Exons are DNA coding sequences."
+    ],
+    "correctAnswer": 1,
+    "explanation": "Adenine also pairs with Uracil in RNA.",
+    "topic": 1,
+    "subtopic": "DNA bases",
+    "level": "Core",
+    "difficulty": "Hard",
+    "id": 1761080966651,
+    "isCustom": true,
+    "createdAt": "2025-10-21T21:09:26.651Z"
+  },
+  {
+    "question": "What part of the cell does transcription take place?",
+    "options": [
+      "Cytoplasm",
+      "Ribosome",
+      "Nucleus",
+      "Mitohondria"
+    ],
+    "correctAnswer": 2,
+    "explanation": "Nucleas is where transcription takes place. Translation takes place in the cytoplasm.",
+    "topic": 1,
+    "subtopic": "Transription",
+    "level": "Core",
+    "difficulty": "Easy",
+    "id": 1761081159115,
+    "isCustom": true,
+    "createdAt": "2025-10-21T21:12:39.115Z"
+  },
+  {
+    "question": "What is a primer?",
+    "options": [
+      "A protein that unwinds DNA before replication",
+      "A short strand of RNA or DNA that provides a starting point for DNA synthesis",
+      "An enzyme that joins Okazaki fragments",
+      "A nucleotide that carries genetic information to the ribosome"
+    ],
+    "correctAnswer": 1,
+    "explanation": "B is correct",
+    "topic": 1,
+    "subtopic": "Transcription",
+    "level": "Core",
+    "difficulty": "Easy",
+    "id": 1761081302107,
+    "isCustom": true,
+    "createdAt": "2025-10-21T21:15:02.107Z"
+  },
+  {
+    "question": "Which DNA molecule has the higher Tₘ (melting temperature)?",
+    "options": [
+      "DNA molecule with 30% G–C content",
+      "DNA molecule with 50% G–C content",
+      "DNA molecule with 50% A–T content",
+      "DNA molecule with 30% A–T content"
+    ],
+    "correctAnswer": 1,
+    "explanation": "Explanation:\nThe melting temperature (Tₘ) of DNA depends on the strength of hydrogen bonding between the base pairs. Guanine (G) and cytosine (C) pairs form three hydrogen bonds, whereas adenine (A) and thymine (T) pairs form only two. Therefore, DNA molecules with a higher G–C content require more energy (higher temperature) to separate the strands, resulting in a higher Tₘ. You can remember it as:  More G–C = Greater bonding = Higher Tₘ.",
+    "topic": 1,
+    "subtopic": "Melting temperature of DNA",
+    "level": "Core",
+    "difficulty": "Hard",
+    "id": 1761081497595,
+    "isCustom": true,
+    "createdAt": "2025-10-21T21:18:17.595Z"
+  },
+  {
+    "question": "Approximately how much of the human genome encodes actual genes?",
+    "options": [
+      "About 20%",
+      "About 10%",
+      "About 2%",
+      "About 50%"
+    ],
+    "correctAnswer": 2,
+    "explanation": "The human genome contains roughly 6.4 gigabases (Gb) of DNA per cell, representing the entire genetic material. However, only about 2% of this DNA actually codes for proteins — our 20,000–25,000 genes.\nThe remaining ~98% of the genome consists of noncoding regions, including regulatory sequences, introns, and repetitive DNA, which play important roles in gene regulation and genome structure but do not directly code for proteins.",
+    "topic": 1,
+    "subtopic": "Human genome",
+    "level": "Core",
+    "difficulty": "Hard",
+    "id": 1761082183226,
+    "isCustom": true,
+    "createdAt": "2025-10-21T21:29:43.226Z"
+  },
+  {
+    "question": "What are SINEs and LINEs in the human genome?",
+    "options": [
+      "Parts of genes that code for proteins",
+      "Repetitive DNA sequences that do not code for proteins",
+      "Sections of DNA that make up chromosomes",
+      "Types of RNA found in the cytoplasm"
+    ],
+    "correctAnswer": 1,
+    "explanation": "SINEs (Short Interspersed Nuclear Elements) — short repetitive DNA pieces, such as Alu sequences, about 300 base pairs long, making up roughly 13% of the genome. LINEs (Long Interspersed Nuclear Elements) — longer repetitive DNA elements, such as LINE-1, about 8000 base pairs long, making up roughly 20% of the genome. Both are noncoding, meaning they don’t make proteins, but they form a large portion of our DNA.",
+    "topic": 1,
+    "subtopic": "Repetitive elements",
+    "level": "Advanced Resident",
+    "difficulty": "Medium",
+    "id": 1761082521442,
+    "isCustom": true,
+    "createdAt": "2025-10-21T21:35:21.442Z"
+  },
+  {
+    "question": "A 10-year-old boy presents with easy bruising and prolonged bleeding after minor injuries. Laboratory studies show a markedly prolonged partial thromboplastin time (PTT) but normal platelet count and prothrombin time (PT). Genetic testing reveals a mutation in the promoter region of the factor IX (F9) gene.",
+    "options": [
+      "It causes abnormal splicing of the mRNA transcript",
+      "It decreases transcription of the factor IX gene",
+      "It results in unstable factor IX protein during translation",
+      "It causes defective secretion of factor IX into plasma"
+    ],
+    "correctAnswer": 1,
+    "explanation": "Hemophilia B Leyden is a rare variant of Hemophilia B caused by a promoter mutation in the factor IX (F9) gene. \nThe promoter region regulates how much mRNA is made; mutations here reduce transcription, leading to low factor IX levels in childhood. \nDuring puberty, androgen-responsive elements can restore partial gene activity, and factor IX levels may rise — improving bleeding symptoms.",
+    "topic": 1,
+    "subtopic": "Transcription/Translation",
+    "level": "Advanced Resident",
+    "difficulty": "Hard",
+    "id": 1761082869514,
+    "isCustom": true,
+    "createdAt": "2025-10-21T21:41:09.514Z"
+  },
+  {
+    "question": "A 45-year-old woman with breast cancer is treated with paclitaxel, a chemotherapeutic agent that stabilizes microtubules and prevents their depolymerization.\nWhich phase of mitosis is most directly affected by this drug?",
+    "options": [
+      "Prophase",
+      "Metaphase",
+      "Anaphase",
+      "Telophase"
+    ],
+    "correctAnswer": 1,
+    "explanation": "Explanation: Paclitaxel “freezes” microtubules so that chromosomes cannot separate, halting the cell in metaphase and preventing cell division — a key mechanism of many anti-mitotic cancer drugs.",
+    "topic": 1,
+    "subtopic": "Mitosis",
+    "level": "Advanced Resident",
+    "difficulty": "Hard",
+    "id": 1761083502617,
+    "isCustom": true,
+    "createdAt": "2025-10-21T21:51:42.617Z"
+  },
+  {
+    "question": "A report from the molecular lab lists a mutation as BRCA1:c.5266dupC (p.Gln1756Profs*74). Which part of this notation refers to the gene name?",
+    "options": [
+      "c.5266dupC",
+      "p.Gln1756Profs*74",
+      "BRCA1",
+      "1756"
+    ],
+    "correctAnswer": 2,
+    "explanation": "Gene nomenclature follows a standard system defined by the Human Gene Nomenclature Committee (HGNC). In mutation notation: \nThe gene name (e.g., BRCA1) appears first. The coding DNA change (c.) describes the exact nucleotide alteration (e.g., c.5266dupC).\nThe protein-level change (p.) describes the resulting amino acid change (e.g., p.Gln1756Profs*74).\nCorrect identification of these parts is essential for interpreting molecular reports and pathology correlations.",
+    "topic": 1,
+    "subtopic": "Gene nomenclature",
+    "level": "Advanced Resident",
+    "difficulty": "Hard",
+    "id": 1761083761800,
+    "isCustom": true,
+    "createdAt": "2025-10-21T21:56:01.801Z"
+  },
+  {
+    "question": "A molecular pathology report describes a mutation as TP53:c.743G>A (p.Arg248Gln). What type of mutation is this?",
+    "options": [
+      "Nonsense mutation",
+      "Missense mutation",
+      "Frameshift mutation",
+      "Silent (synonymous) mutation"
+    ],
+    "correctAnswer": 0,
+    "explanation": "In standard gene nomenclature:\n\nc.743G>A indicates that at the DNA level, guanine (G) is replaced by adenine (A) at position 743.\n\np.Arg248Gln shows that at the protein level, the amino acid arginine (Arg) is replaced by glutamine (Gln) at position 248.\n\nThis represents a missense mutation, meaning one amino acid is substituted for another, which can alter protein function.\n\nBy contrast:\n\nNonsense mutations introduce a stop codon.\n\nFrameshift mutations result from insertions/deletions shifting the reading frame.\n\nSilent mutations change the DNA sequence without changing the amino acid.",
+    "topic": 1,
+    "subtopic": "Gene nomenclature",
+    "level": "Core",
+    "difficulty": "Medium",
+    "id": 1761084021640,
+    "isCustom": true,
+    "createdAt": "2025-10-21T22:00:21.640Z"
+  },
+  {
+    "question": "A somatic variant report for a colorectal carcinoma shows the following finding: KRAS NM_004985.5:c.35G>T (p.Gly12Val)\nWhich of the following statements is most accurate regarding this variant?",
+    "options": [
+      "It is a nonsense mutation that introduces a premature stop codon",
+      "It is a missense mutation substituting glycine with valine at codon 12",
+      "It represents a splice-site mutation affecting intron 1",
+      "It indicates a deletion of three nucleotides resulting in a frameshift"
+    ],
+    "correctAnswer": 1,
+    "explanation": "HGVS nomenclature breakdown:\n\nKRAS → gene name\n\nNM_004985.5 → specific mRNA reference sequence used\n\nc.35G>T → nucleotide substitution at position 35 (guanine replaced by thymine) in the coding DNA (c.)\n\np.Gly12Val → amino acid substitution from glycine (Gly) to valine (Val) at position 12\n\nThis corresponds to the well-known KRAS G12V mutation, a missense mutation in exon 2, leading to constitutive activation of the KRAS protein.\n\nClinically, KRAS mutations (especially at codon 12 or 13) predict lack of response to anti-EGFR monoclonal antibody therapy (e.g., cetuximab, panitumumab) in colorectal cancer.",
+    "topic": 1,
+    "subtopic": "Variant Nomenclature ",
+    "level": "Advanced Resident",
+    "difficulty": "Medium",
+    "id": 1761084316624,
+    "isCustom": true,
+    "createdAt": "2025-10-21T22:05:16.624Z"
   }
 ]
