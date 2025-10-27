@@ -100,15 +100,28 @@ function App() {
 
   // Custom Questions Management with Firebase
   const addCustomQuestion = async (question) => {
+    console.log('=== FIREBASE DEBUG: Starting addCustomQuestion ===');
+    console.log('Question data:', question);
+    
     try {
+      console.log('🔄 Calling Firebase addQuestion()...');
       const newQuestion = await addQuestion(question);
+      console.log('✅ Firebase returned question with ID:', newQuestion.id);
+      
       setCustomQuestions(prev => [...prev, newQuestion]);
       // Also save to localStorage as backup
       localStorage.setItem('customBoardQuestions', JSON.stringify([...customQuestions, newQuestion]));
+      
+      console.log('✅ Question added successfully to both Firebase and localStorage');
       return newQuestion;
     } catch (error) {
-      console.error('Failed to add question to Firebase:', error);
+      console.error('❌ FIREBASE ERROR in addCustomQuestion:');
+      console.error('Error message:', error.message);
+      console.error('Error code:', error.code);
+      console.error('Full error:', error);
+      
       // Fallback to localStorage only
+      console.log('🔄 Falling back to localStorage only...');
       const newQuestion = {
         ...question,
         id: Date.now(),
@@ -118,6 +131,7 @@ function App() {
       const updatedQuestions = [...customQuestions, newQuestion];
       setCustomQuestions(updatedQuestions);
       localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+      console.log('✅ Saved to localStorage as backup');
       throw error;
     }
   };
