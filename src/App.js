@@ -100,10 +100,14 @@ function App() {
 
   // Custom Questions Management with Firebase
   const addCustomQuestion = async (question) => {
+    // FIRST THING: Show we're entering the function
+    alert('🔍 DEBUG: Entering addCustomQuestion function');
+    
     console.log('=== FIREBASE DEBUG: Starting addCustomQuestion ===');
     console.log('Question data:', question);
 
     try {
+      alert('🔍 DEBUG: About to call Firebase addQuestion()');
       console.log('🔄 Calling Firebase addQuestion()...');
       const newQuestion = await addQuestion(question);
       console.log('✅ Firebase returned question with ID:', newQuestion.id);
