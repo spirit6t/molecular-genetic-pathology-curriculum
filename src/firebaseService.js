@@ -19,20 +19,30 @@ const COLLECTION_NAME = 'boardQuestions';
  */
 export const getAllQuestions = async () => {
     try {
+        console.log('🔄 Fetching all questions from Firestore...');
+        console.log('📁 Collection name:', COLLECTION_NAME);
+
         const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
 
+        console.log('📊 Total questions found:', querySnapshot.size);
+
         const questions = [];
         querySnapshot.forEach((doc) => {
+            console.log('📄 Question found:', doc.id, doc.data());
             questions.push({
                 id: doc.id, // Use Firebase document ID
                 ...doc.data()
             });
         });
 
+        console.log('✅ Successfully loaded', questions.length, 'questions');
         return questions;
     } catch (error) {
-        console.error('Error fetching questions:', error);
+        console.error('❌ Error fetching questions:');
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Full error:', error);
         throw error;
     }
 };
@@ -42,6 +52,10 @@ export const getAllQuestions = async () => {
  */
 export const addQuestion = async (question) => {
     try {
+        console.log('🔄 Attempting to save question to Firestore...');
+        console.log('📊 Question data:', question);
+        console.log('📁 Collection name:', COLLECTION_NAME);
+
         const questionData = {
             ...question,
             isCustom: true,
@@ -49,13 +63,21 @@ export const addQuestion = async (question) => {
             updatedAt: Timestamp.now()
         };
 
+        console.log('💾 Prepared question data:', questionData);
+        console.log('🗄️ Database instance:', db);
+
         const docRef = await addDoc(collection(db, COLLECTION_NAME), questionData);
+        console.log('✅ Successfully saved question with ID:', docRef.id);
+
         return {
             id: docRef.id,
             ...questionData
         };
     } catch (error) {
-        console.error('Error adding question:', error);
+        console.error('❌ Error adding question to Firestore:');
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Full error:', error);
         throw error;
     }
 };

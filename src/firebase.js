@@ -4,15 +4,14 @@ import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 // Firebase configuration
-// Get these values from: https://console.firebase.google.com/ → Project Settings → General
-// The message about "Firebase-provisioned API key... automatically restricted" is CORRECT and expected!
 const firebaseConfig = {
-    apiKey: "AIzaSyDo3BtLFoYt8Uv5Nbfls_J17H3Epqw7Kpg",                    // Copy from Firebase Console
-    authDomain: "molecular-genetic-curriculum.firebaseapp.com",  // Copy from Firebase Console
-    projectId: "molecular-genetic-curriculum",              // Copy from Firebase Console
-    storageBucket: "molecular-genetic-curriculum.firebasestorage.app",     // Copy from Firebase Console
-    messagingSenderId: "1065657693983",   // Copy from Firebase Console
-    appId: "1:1065657693983:web:369dcb74b3625ce8fda22a"                       // Copy from Firebase Console
+    apiKey: "AIzaSyDo3BtLFoYt8Uv5Nbfls_J17H3Epqw7Kpg",
+    authDomain: "molecular-genetic-curriculum.firebaseapp.com",
+    projectId: "molecular-genetic-curriculum",
+    storageBucket: "molecular-genetic-curriculum.firebasestorage.app",
+    messagingSenderId: "1065657693983",
+    appId: "1:1065657693983:web:369dcb74b3625ce8fda22a",
+    measurementId: "G-R7LFX0ZBBL"
 };
 
 // Initialize Firebase
@@ -25,4 +24,3 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 
 export default app;
-
