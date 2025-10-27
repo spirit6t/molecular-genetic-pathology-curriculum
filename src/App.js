@@ -9,7 +9,6 @@ function App() {
   const [selectedLevel, setSelectedLevel] = useState('All');
   const [schedule, setSchedule] = useState([]);
   const [customQuestions, setCustomQuestions] = useState([]);
-  const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
 
   // Load saved schedule from localStorage
   useEffect(() => {
@@ -23,7 +22,6 @@ function App() {
   useEffect(() => {
     const loadQuestions = async () => {
       try {
-        setIsLoadingQuestions(true);
         const questions = await getAllQuestions();
         setCustomQuestions(questions);
       } catch (error) {
@@ -33,8 +31,6 @@ function App() {
         if (savedQuestions) {
           setCustomQuestions(JSON.parse(savedQuestions));
         }
-      } finally {
-        setIsLoadingQuestions(false);
       }
     };
 
