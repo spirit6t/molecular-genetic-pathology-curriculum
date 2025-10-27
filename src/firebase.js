@@ -3,15 +3,16 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
-// TODO: Replace these values with your Firebase project configuration
-// Get these from: https://console.firebase.google.com/
+// Firebase configuration
+// Get these values from: https://console.firebase.google.com/ → Project Settings → General
+// The message about "Firebase-provisioned API key... automatically restricted" is CORRECT and expected!
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyDo3BtLFoYt8Uv5Nbfls_J17H3Epqw7Kpg",                    // Copy from Firebase Console
+    authDomain: "molecular-genetic-curriculum.firebaseapp.com",  // Copy from Firebase Console
+    projectId: "molecular-genetic-curriculum",              // Copy from Firebase Console
+    storageBucket: "molecular-genetic-curriculum.firebasestorage.app",     // Copy from Firebase Console
+    messagingSenderId: "1065657693983",   // Copy from Firebase Console
+    appId: "1:1065657693983:web:369dcb74b3625ce8fda22a"                       // Copy from Firebase Console
 };
 
 // Initialize Firebase
