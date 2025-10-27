@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import { curriculumTopics, resources, boardQuestions, projects, twoYearCurriculum } from './curriculumData';
+import { getAllQuestions, addQuestion, updateQuestion, deleteQuestion } from './firebaseService';
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
@@ -8,18 +9,36 @@ function App() {
   const [selectedLevel, setSelectedLevel] = useState('All');
   const [schedule, setSchedule] = useState([]);
   const [customQuestions, setCustomQuestions] = useState([]);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
 
-  // Load saved schedule and custom questions from localStorage
+  // Load saved schedule from localStorage
   useEffect(() => {
     const savedSchedule = localStorage.getItem('curriculumSchedule');
     if (savedSchedule) {
       setSchedule(JSON.parse(savedSchedule));
     }
+  }, []);
 
-    const savedQuestions = localStorage.getItem('customBoardQuestions');
-    if (savedQuestions) {
-      setCustomQuestions(JSON.parse(savedQuestions));
-    }
+  // Load custom questions from Firebase
+  useEffect(() => {
+    const loadQuestions = async () => {
+      try {
+        setIsLoadingQuestions(true);
+        const questions = await getAllQuestions();
+        setCustomQuestions(questions);
+      } catch (error) {
+        console.error('Failed to load questions from Firebase:', error);
+        // Fallback to localStorage if Firebase fails
+        const savedQuestions = localStorage.getItem('customBoardQuestions');
+        if (savedQuestions) {
+          setCustomQuestions(JSON.parse(savedQuestions));
+        }
+      } finally {
+        setIsLoadingQuestions(false);
+      }
+    };
+    
+    loadQuestions();
   }, []);
 
   // Save schedule to localStorage
@@ -83,32 +102,64 @@ function App() {
     saveSchedule(updatedSchedule);
   };
 
-  // Custom Questions Management
-  const addCustomQuestion = (question) => {
-    const newQuestion = {
-      ...question,
-      id: Date.now(),
-      isCustom: true,
-      createdAt: new Date().toISOString()
-    };
-    const updatedQuestions = [...customQuestions, newQuestion];
-    setCustomQuestions(updatedQuestions);
-    localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
-    return newQuestion;
+  // Custom Questions Management with Firebase
+  const addCustomQuestion = async (question) => {
+    try {
+      const newQuestion = await addQuestion(question);
+      setCustomQuestions(prev => [...prev, newQuestion]);
+      // Also save to localStorage as backup
+      localStorage.setItem('customBoardQuestions', JSON.stringify([...customQuestions, newQuestion]));
+      return newQuestion;
+    } catch (error) {
+      console.error('Failed to add question to Firebase:', error);
+      // Fallback to localStorage only
+      const newQuestion = {
+        ...question,
+        id: Date.now(),
+        isCustom: true,
+        createdAt: new Date().toISOString()
+      };
+      const updatedQuestions = [...customQuestions, newQuestion];
+      setCustomQuestions(updatedQuestions);
+      localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+      throw error;
+    }
   };
 
-  const updateCustomQuestion = (questionId, updatedQuestion) => {
-    const updatedQuestions = customQuestions.map(q =>
-      q.id === questionId ? { ...q, ...updatedQuestion, updatedAt: new Date().toISOString() } : q
-    );
-    setCustomQuestions(updatedQuestions);
-    localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+  const updateCustomQuestion = async (questionId, updatedQuestion) => {
+    try {
+      const updated = await updateQuestion(questionId, updatedQuestion);
+      setCustomQuestions(prev => prev.map(q => q.id === questionId ? updated : q));
+      // Also update localStorage
+      const updatedQuestions = customQuestions.map(q => q.id === questionId ? updated : q);
+      localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+    } catch (error) {
+      console.error('Failed to update question in Firebase:', error);
+      // Fallback to localStorage
+      const updatedQuestions = customQuestions.map(q =>
+        q.id === questionId ? { ...q, ...updatedQuestion, updatedAt: new Date().toISOString() } : q
+      );
+      setCustomQuestions(updatedQuestions);
+      localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+      throw error;
+    }
   };
 
-  const deleteCustomQuestion = (questionId) => {
-    const updatedQuestions = customQuestions.filter(q => q.id !== questionId);
-    setCustomQuestions(updatedQuestions);
-    localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+  const deleteCustomQuestion = async (questionId) => {
+    try {
+      await deleteQuestion(questionId);
+      setCustomQuestions(prev => prev.filter(q => q.id !== questionId));
+      // Also update localStorage
+      const updatedQuestions = customQuestions.filter(q => q.id !== questionId);
+      localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+    } catch (error) {
+      console.error('Failed to delete question from Firebase:', error);
+      // Fallback to localStorage
+      const updatedQuestions = customQuestions.filter(q => q.id !== questionId);
+      setCustomQuestions(updatedQuestions);
+      localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+      throw error;
+    }
   };
 
   // Combine default and custom questions
