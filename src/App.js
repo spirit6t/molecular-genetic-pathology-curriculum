@@ -102,16 +102,19 @@ function App() {
   const addCustomQuestion = async (question) => {
     console.log('=== FIREBASE DEBUG: Starting addCustomQuestion ===');
     console.log('Question data:', question);
-    
+
     try {
       console.log('🔄 Calling Firebase addQuestion()...');
       const newQuestion = await addQuestion(question);
       console.log('✅ Firebase returned question with ID:', newQuestion.id);
       
+      // Show success alert
+      alert('✅ Saved to FIREBASE! Check Firebase Console to verify.');
+
       setCustomQuestions(prev => [...prev, newQuestion]);
       // Also save to localStorage as backup
       localStorage.setItem('customBoardQuestions', JSON.stringify([...customQuestions, newQuestion]));
-      
+
       console.log('✅ Question added successfully to both Firebase and localStorage');
       return newQuestion;
     } catch (error) {
@@ -119,7 +122,10 @@ function App() {
       console.error('Error message:', error.message);
       console.error('Error code:', error.code);
       console.error('Full error:', error);
-      
+
+      // Show error alert with details
+      alert(`❌ FIREBASE FAILED: ${error.message || error.code || 'Unknown error'}\n\nFalling back to localStorage...`);
+
       // Fallback to localStorage only
       console.log('🔄 Falling back to localStorage only...');
       const newQuestion = {
@@ -132,6 +138,9 @@ function App() {
       setCustomQuestions(updatedQuestions);
       localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
       console.log('✅ Saved to localStorage as backup');
+      
+      // Show fallback alert
+      alert('⚠️ Saved to localStorage (Firebase not working).\n\nData will NOT persist across devices.');
       throw error;
     }
   };
