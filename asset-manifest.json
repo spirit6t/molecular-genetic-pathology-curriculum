@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/molecular-genetic-pathology-curriculum/static/css/main.9100937a.css",
+    "main.js": "/molecular-genetic-pathology-curriculum/static/js/main.5cac115a.js",
+    "static/js/453.7c8176c0.chunk.js": "/molecular-genetic-pathology-curriculum/static/js/453.7c8176c0.chunk.js",
+    "index.html": "/molecular-genetic-pathology-curriculum/index.html",
+    "main.9100937a.css.map": "/molecular-genetic-pathology-curriculum/static/css/main.9100937a.css.map",
+    "main.5cac115a.js.map": "/molecular-genetic-pathology-curriculum/static/js/main.5cac115a.js.map",
+    "453.7c8176c0.chunk.js.map": "/molecular-genetic-pathology-curriculum/static/js/453.7c8176c0.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.9100937a.css",
+    "static/js/main.5cac115a.js"
+  ]
+}
