@@ -1259,7 +1259,7 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
       setShowAddForm(false);
     } catch (error) {
       // If onAddQuestion threw, our code already saved to localStorage as fallback
-      alert('Saved locally only (Firebase failed). Your question will not sync across devices.');
+      alert(`Saved locally only (Firebase failed).\n\nError: ${error?.code || 'unknown'} - ${error?.message || ''}`);
     }
   };
 
