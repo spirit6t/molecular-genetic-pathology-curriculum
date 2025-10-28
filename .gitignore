@@ -53,4 +53,4 @@ src/AssignmentManager.js
 src/PracticalExercisesManager.js
 src/stockData.js
 src/stockAnalysis.js
-Thumbs.db
+Thumbs.dbbuild/ static/ asset-manifest.json index.html favicon.ico logo*.png manifest.json robots.txt
