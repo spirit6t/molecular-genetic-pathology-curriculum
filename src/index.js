@@ -4,6 +4,9 @@ import './index.css';
 import App from './App.js';
 import reportWebVitals from './reportWebVitals';
 
+// Force cache bust for Firebase debug build
+console.log('BUILD_VERSION: 0877de1-fixed-cache-2024');
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
