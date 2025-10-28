@@ -1227,17 +1227,22 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
     return { correct, total };
   };
 
-  const handleAddQuestion = () => {
-    if (newQuestion.question.trim() && newQuestion.options.every(opt => opt.trim())) {
+  const handleAddQuestion = async () => {
+    if (!(newQuestion.question.trim() && newQuestion.options.every(opt => opt.trim()))) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
       if (editingQuestion) {
         // Update existing question
-        onUpdateQuestion(editingQuestion.id, newQuestion);
-        alert('Question updated successfully!');
+        await onUpdateQuestion(editingQuestion.id, newQuestion);
+        alert('Question updated successfully (Firebase)');
         setEditingQuestion(null);
       } else {
         // Add new question
-        onAddQuestion(newQuestion);
-        alert('Question added successfully!');
+        await onAddQuestion(newQuestion);
+        alert('Question added successfully (Firebase)');
       }
 
       // Reset form
@@ -1252,8 +1257,9 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
         difficulty: 'Medium'
       });
       setShowAddForm(false);
-    } else {
-      alert('Please fill in all required fields');
+    } catch (error) {
+      // If onAddQuestion threw, our code already saved to localStorage as fallback
+      alert('Saved locally only (Firebase failed). Your question will not sync across devices.');
     }
   };
 
