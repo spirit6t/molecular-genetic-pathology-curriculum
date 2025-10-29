@@ -100,38 +100,14 @@ function App() {
 
   // Custom Questions Management with Firebase
   const addCustomQuestion = async (question) => {
-    // FIRST THING: Show we're entering the function
-    alert('🔍 DEBUG: Entering addCustomQuestion function');
-    
-    console.log('=== FIREBASE DEBUG: Starting addCustomQuestion ===');
-    console.log('Question data:', question);
-
     try {
-      alert('🔍 DEBUG: About to call Firebase addQuestion()');
-      console.log('🔄 Calling Firebase addQuestion()...');
       const newQuestion = await addQuestion(question);
-      console.log('✅ Firebase returned question with ID:', newQuestion.id);
-      
-      // Show success alert
-      alert('✅ Saved to FIREBASE! Check Firebase Console to verify.');
-
       setCustomQuestions(prev => [...prev, newQuestion]);
       // Also save to localStorage as backup
       localStorage.setItem('customBoardQuestions', JSON.stringify([...customQuestions, newQuestion]));
-
-      console.log('✅ Question added successfully to both Firebase and localStorage');
       return newQuestion;
     } catch (error) {
-      console.error('❌ FIREBASE ERROR in addCustomQuestion:');
-      console.error('Error message:', error.message);
-      console.error('Error code:', error.code);
-      console.error('Full error:', error);
-
-      // Show error alert with details
-      alert(`❌ FIREBASE FAILED: ${error.message || error.code || 'Unknown error'}\n\nFalling back to localStorage...`);
-
       // Fallback to localStorage only
-      console.log('🔄 Falling back to localStorage only...');
       const newQuestion = {
         ...question,
         id: Date.now(),
@@ -141,10 +117,6 @@ function App() {
       const updatedQuestions = [...customQuestions, newQuestion];
       setCustomQuestions(updatedQuestions);
       localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
-      console.log('✅ Saved to localStorage as backup');
-      
-      // Show fallback alert
-      alert('⚠️ Saved to localStorage (Firebase not working).\n\nData will NOT persist across devices.');
       throw error;
     }
   };
@@ -1237,12 +1209,12 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
       if (editingQuestion) {
         // Update existing question
         await onUpdateQuestion(editingQuestion.id, newQuestion);
-        alert('Question updated successfully (Firebase)');
+        alert('Question updated successfully!');
         setEditingQuestion(null);
       } else {
         // Add new question
         await onAddQuestion(newQuestion);
-        alert('Question added successfully (Firebase)');
+        alert('Question added successfully!');
       }
 
       // Reset form
@@ -1259,7 +1231,7 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
       setShowAddForm(false);
     } catch (error) {
       // If onAddQuestion threw, our code already saved to localStorage as fallback
-      alert(`Saved locally only (Firebase failed).\n\nError: ${error?.code || 'unknown'} - ${error?.message || ''}`);
+      alert('Saved locally (cloud sync currently unavailable).');
     }
   };
 
