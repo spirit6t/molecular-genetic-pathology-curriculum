@@ -3,7 +3,12 @@ import './App.css';
 import { curriculumTopics, resources, boardQuestions, projects, twoYearCurriculum } from './curriculumData';
 import { getAllQuestions, addQuestion, updateQuestion, deleteQuestion } from './firebaseService';
 import { fetchScheduleItems, replaceScheduleItems } from './firebaseScheduleService';
-import { fetchResources, addResource as addResourceToFirebase } from './firebaseResourcesService';
+import {
+  fetchResources,
+  addResource as addResourceToFirebase,
+  updateResource as updateResourceInFirebase,
+  deleteResource as deleteResourceInFirebase
+} from './firebaseResourcesService';
 import {
   fetchProjects,
   addProject as addProjectToFirebase,
@@ -638,6 +643,7 @@ function ScheduleView({ schedule, toggleScheduleItem, updateScheduleItemDate, re
 function ResourcesView() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingResource, setEditingResource] = useState(null);
   const [newResource, setNewResource] = useState({
     type: 'book',
     title: '',
@@ -647,6 +653,7 @@ function ResourcesView() {
     isbn: '',
     url: '',
     description: '',
+    impactFactor: '',
     topics: []
   });
   const [resourceList, setResourceList] = useState(resources);
@@ -687,7 +694,7 @@ function ResourcesView() {
       return;
     }
 
-    const resourcePayload = {
+  const resourcePayload = {
       type: newResource.type,
       title: newResource.title,
       author: newResource.author,
@@ -696,29 +703,41 @@ function ResourcesView() {
       isbn: newResource.isbn,
       url: newResource.url,
       description: newResource.description,
-      topics: newResource.topics.map(t => parseInt(t, 10))
+    impactFactor: newResource.type === 'journal' ? newResource.impactFactor : '',
+    topics: newResource.topics.map(t => parseInt(t, 10))
     };
 
     const categoryKey = newResource.type === 'journal' ? 'journals' : newResource.type === 'link' ? 'links' : 'books';
-    let resourceToAdd = {
-      id: Date.now().toString(),
-      ...resourcePayload
-    };
+  let resourceId = editingResource?.id || Date.now().toString();
+  let resourceToPersist = {
+    id: resourceId,
+    ...resourcePayload
+  };
 
-    try {
-      setIsSaving(true);
-      resourceToAdd = await addResourceToFirebase(resourcePayload);
-    } catch (error) {
-      console.error('Failed to add resource to Firebase:', error);
-      alert('Resource saved locally (cloud sync unavailable).');
-    } finally {
-      setIsSaving(false);
+  try {
+    setIsSaving(true);
+    if (editingResource) {
+      await updateResourceInFirebase(resourceId, resourcePayload);
+    } else {
+      resourceToPersist = await addResourceToFirebase(resourcePayload);
+      resourceId = resourceToPersist.id;
     }
+  } catch (error) {
+    console.error('Failed to add resource to Firebase:', error);
+    alert(editingResource ? 'Changes saved locally (cloud sync unavailable).' : 'Resource saved locally (cloud sync unavailable).');
+  } finally {
+    setIsSaving(false);
+  }
 
-    setResourceList(prev => ({
-      ...prev,
-      [categoryKey]: [...prev[categoryKey], resourceToAdd]
-    }));
+  setResourceList(prev => {
+    const cleaned = {
+      books: prev.books.filter(r => r.id !== resourceId),
+      journals: prev.journals.filter(r => r.id !== resourceId),
+      links: prev.links.filter(r => r.id !== resourceId)
+    };
+    cleaned[categoryKey] = [...cleaned[categoryKey], { id: resourceId, ...resourcePayload }];
+    return cleaned;
+  });
 
     setNewResource({
       type: 'book',
@@ -729,8 +748,10 @@ function ResourcesView() {
       isbn: '',
       url: '',
       description: '',
+    impactFactor: '',
       topics: []
     });
+  setEditingResource(null);
     setShowAddForm(false);
   };
 
@@ -740,6 +761,41 @@ function ResourcesView() {
       ? newResource.topics.filter(id => id !== topicIdStr)
       : [...newResource.topics, topicIdStr];
     setNewResource({ ...newResource, topics: updatedTopics });
+  };
+
+  const handleEditResource = (resource, type) => {
+    setNewResource({
+      type,
+      title: resource.title || '',
+      author: resource.author || '',
+      publisher: resource.publisher || '',
+      edition: resource.edition || '',
+      isbn: resource.isbn || '',
+      url: resource.url || '',
+      description: resource.description || '',
+      impactFactor: resource.impactFactor || '',
+      topics: (resource.topics || []).map(t => t.toString())
+    });
+    setEditingResource({ id: resource.id, type });
+    setShowAddForm(true);
+  };
+
+  const handleDeleteResource = async (resourceId, type) => {
+    if (!window.confirm('Are you sure you want to delete this resource?')) {
+      return;
+    }
+
+    const category = type === 'journal' ? 'journals' : type === 'link' ? 'links' : 'books';
+    setResourceList(prev => ({
+      ...prev,
+      [category]: prev[category].filter(resource => resource.id !== resourceId)
+    }));
+
+    try {
+      await deleteResourceInFirebase(resourceId);
+    } catch (error) {
+      console.error('Failed to delete resource from Firebase:', error);
+    }
   };
 
   return (
@@ -756,7 +812,9 @@ function ResourcesView() {
 
       {showAddForm && (
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">Add New Resource</h3>
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">
+            {editingResource ? 'Edit Resource' : 'Add New Resource'}
+          </h3>
           <div className="space-y-4">
             {/* Resource Type */}
             <div>
@@ -896,7 +954,7 @@ function ResourcesView() {
                 disabled={isSaving}
                 className={`px-6 py-2 rounded-lg transition-colors ${isSaving ? 'bg-blue-300 text-white cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
               >
-                {isSaving ? 'Saving…' : 'Add Resource'}
+                {isSaving ? 'Saving…' : editingResource ? 'Update Resource' : 'Add Resource'}
               </button>
             </div>
           </div>
@@ -913,6 +971,20 @@ function ResourcesView() {
               <p className="text-sm text-gray-600 mb-2">{book.author}</p>
               <p className="text-sm text-gray-500 mb-2">{book.publisher} - {book.edition}</p>
               <p className="text-xs text-blue-600">ISBN: {book.isbn}</p>
+              <div className="mt-4 flex space-x-2">
+                <button
+                  onClick={() => handleEditResource(book, 'book')}
+                  className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDeleteResource(book.id, 'book')}
+                  className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -937,6 +1009,20 @@ function ResourcesView() {
                   Visit Journal →
                 </a>
               )}
+              <div className="mt-4 flex space-x-2">
+                <button
+                  onClick={() => handleEditResource(journal, 'journal')}
+                  className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDeleteResource(journal.id, 'journal')}
+                  className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -952,6 +1038,20 @@ function ResourcesView() {
                 {link.title} →
               </a>
               <p className="text-sm text-gray-600 mt-1">{link.description}</p>
+              <div className="mt-4 flex space-x-2">
+                <button
+                  onClick={() => handleEditResource(link, 'link')}
+                  className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDeleteResource(link.id, 'link')}
+                  className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
