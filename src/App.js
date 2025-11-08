@@ -223,16 +223,10 @@ function App() {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <img
-                  src="https://www.hcahealthcare.com/content/dam/hcahealthcare-com/images/global/hca-healthcare-logo-blue-orange.png"
+                  src={`${process.env.PUBLIC_URL || ''}/hca-logo.svg`}
                   alt="HCA Healthcare"
                   className="h-12 w-auto object-contain"
                   loading="lazy"
-                  referrerPolicy="no-referrer"
-                  onError={(event) => {
-                    event.currentTarget.onerror = null;
-                    event.currentTarget.src =
-                      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/HCA_Healthcare_logo.svg/512px-HCA_Healthcare_logo.svg.png';
-                  }}
                 />
               </div>
               <div className="ml-4">
