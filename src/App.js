@@ -222,9 +222,12 @@ function App() {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">MGP</span>
-                </div>
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/HCA_Healthcare_logo.svg/512px-HCA_Healthcare_logo.svg.png"
+                  alt="HCA Healthcare"
+                  className="h-10 w-auto"
+                  loading="lazy"
+                />
               </div>
               <div className="ml-4">
                 <h1 className="text-2xl font-bold text-gray-900">Molecular Genetic Pathology</h1>
