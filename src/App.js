@@ -13,7 +13,8 @@ import {
   fetchProjects,
   addProject as addProjectToFirebase,
   deleteProject as deleteProjectFromFirebase,
-  clearAllProjects as clearProjectsFromFirebase
+  clearAllProjects as clearProjectsFromFirebase,
+  updateProject
 } from './firebaseProjectsService';
 
 function App() {
@@ -1161,6 +1162,7 @@ function ResourcesView() {
 function ProjectsView() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [isSavingProject, setIsSavingProject] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
   const [newProject, setNewProject] = useState({
     title: '',
     description: '',
@@ -1210,22 +1212,28 @@ function ProjectsView() {
       dueDate: newProject.dueDate
     };
 
-    let projectToAdd = {
-      id: Date.now().toString(),
-      ...projectPayload
-    };
+    let projectId = editingProject?.id || Date.now().toString();
+    let projectToPersist = { id: projectId, ...projectPayload };
 
     try {
       setIsSavingProject(true);
-      projectToAdd = await addProjectToFirebase(projectPayload);
+      if (editingProject) {
+        await updateProject(projectId, projectPayload);
+      } else {
+        projectToPersist = await addProjectToFirebase(projectPayload);
+        projectId = projectToPersist.id;
+      }
     } catch (error) {
-      console.error('Failed to add project to Firebase:', error);
-      alert('Project saved locally (cloud sync unavailable).');
+      console.error('Failed to save project to Firebase:', error);
+      alert(editingProject ? 'Changes saved locally (cloud sync unavailable).' : 'Project saved locally (cloud sync unavailable).');
     } finally {
       setIsSavingProject(false);
     }
 
-    setProjectList(prev => [...prev, projectToAdd].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)));
+    setProjectList(prev => {
+      const filtered = prev.filter(project => project.id !== projectId);
+      return [...filtered, { id: projectId, ...projectPayload }].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    });
 
     setNewProject({
       title: '',
@@ -1236,6 +1244,7 @@ function ProjectsView() {
       deliverables: [''],
       dueDate: ''
     });
+    setEditingProject(null);
     setShowAddForm(false);
   };
 
@@ -1276,6 +1285,20 @@ function ProjectsView() {
     }
   };
 
+  const handleEditProject = (project) => {
+    setNewProject({
+      title: project.title || '',
+      description: project.description || '',
+      duration: project.duration || '',
+      topic: project.topic || 1,
+      subtopic: project.subtopic || '',
+      deliverables: Array.isArray(project.deliverables) && project.deliverables.length ? project.deliverables : [''],
+      dueDate: project.dueDate || ''
+    });
+    setEditingProject(project);
+    setShowAddForm(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -1303,7 +1326,9 @@ function ProjectsView() {
 
       {showAddForm && (
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">Add New Project</h3>
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">
+            {editingProject ? 'Edit Project' : 'Add New Project'}
+          </h3>
           <div className="space-y-4">
             {/* Project Title */}
             <div>
@@ -1424,7 +1449,7 @@ function ProjectsView() {
                 disabled={isSavingProject}
                 className={`px-6 py-2 rounded-lg transition-colors ${isSavingProject ? 'bg-blue-300 text-white cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
               >
-                {isSavingProject ? 'Saving…' : 'Add Project'}
+                {isSavingProject ? 'Saving…' : editingProject ? 'Update Project' : 'Add Project'}
               </button>
             </div>
           </div>
@@ -1447,13 +1472,20 @@ function ProjectsView() {
                   <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
                     Due: {new Date(project.dueDate).toLocaleDateString()}
                   </span>
-                  <button
-                    onClick={() => removeProject(project.id)}
-                    className="text-red-600 hover:text-red-700 text-sm"
-                    title="Remove project"
-                  >
-                    ✕
-                  </button>
+                <button
+                  onClick={() => handleEditProject(project)}
+                  className="text-blue-600 hover:text-blue-700 text-sm"
+                  title="Edit project"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => removeProject(project.id)}
+                  className="text-red-600 hover:text-red-700 text-sm"
+                  title="Remove project"
+                >
+                  ✕
+                </button>
                 </div>
               </div>
 

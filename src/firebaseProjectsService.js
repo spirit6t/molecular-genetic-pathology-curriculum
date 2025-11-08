@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, writeBatch } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, setDoc, writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
 
 const COLLECTION_NAME = 'projects';
@@ -28,6 +28,10 @@ export const clearAllProjects = async () => {
   const batch = writeBatch(db);
   snapshot.forEach((docSnap) => batch.delete(docSnap.ref));
   await batch.commit();
+};
+
+export const updateProject = async (projectId, updatedFields) => {
+  await setDoc(doc(db, COLLECTION_NAME, projectId), updatedFields, { merge: true });
 };
 
 
