@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import { curriculumTopics, resources, boardQuestions, projects, twoYearCurriculum } from './curriculumData';
 import { getAllQuestions, addQuestion, updateQuestion, deleteQuestion } from './firebaseService';
+import { fetchScheduleItems, replaceScheduleItems } from './firebaseScheduleService';
+import { fetchResources, addResource as addResourceToFirebase } from './firebaseResourcesService';
+import {
+  fetchProjects,
+  addProject as addProjectToFirebase,
+  deleteProject as deleteProjectFromFirebase,
+  clearAllProjects as clearProjectsFromFirebase
+} from './firebaseProjectsService';
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
@@ -10,12 +18,35 @@ function App() {
   const [schedule, setSchedule] = useState([]);
   const [customQuestions, setCustomQuestions] = useState([]);
 
-  // Load saved schedule from localStorage
+  // Load schedule from Firebase with local fallback
   useEffect(() => {
-    const savedSchedule = localStorage.getItem('curriculumSchedule');
-    if (savedSchedule) {
-      setSchedule(JSON.parse(savedSchedule));
-    }
+    const loadSchedule = async () => {
+      try {
+        const firebaseSchedule = await fetchScheduleItems();
+        if (firebaseSchedule.length > 0) {
+          const sanitized = firebaseSchedule
+            .map(item => ({
+              ...item,
+              id: String(item.id),
+              completedSubtopics: item.completedSubtopics || []
+            }))
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+          setSchedule(sanitized);
+          localStorage.setItem('curriculumSchedule', JSON.stringify(sanitized));
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to load schedule from Firebase:', error);
+      }
+
+      const savedSchedule = localStorage.getItem('curriculumSchedule');
+      if (savedSchedule) {
+        const parsed = JSON.parse(savedSchedule);
+        setSchedule(parsed.sort((a, b) => new Date(a.date) - new Date(b.date)));
+      }
+    };
+
+    loadSchedule();
   }, []);
 
   // Load custom questions from Firebase
@@ -39,8 +70,19 @@ function App() {
 
   // Save schedule to localStorage
   const saveSchedule = (newSchedule) => {
-    setSchedule(newSchedule);
-    localStorage.setItem('curriculumSchedule', JSON.stringify(newSchedule));
+    const sanitized = newSchedule.map(item => ({
+      ...item,
+      id: String(item.id),
+      completedSubtopics: item.completedSubtopics || []
+    }));
+    const sorted = sanitized.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    setSchedule(sorted);
+    localStorage.setItem('curriculumSchedule', JSON.stringify(sorted));
+
+    replaceScheduleItems(sorted).catch(error => {
+      console.error('Failed to sync schedule with Firebase:', error);
+    });
   };
 
   const filteredTopics = selectedLevel === 'All'
@@ -49,7 +91,7 @@ function App() {
 
   const addToSchedule = (topic, date, subtopic = null) => {
     const newItem = {
-      id: Date.now(),
+      id: Date.now().toString(),
       topic: topic.topic,
       subtopic: subtopic,
       date: date,
@@ -595,6 +637,7 @@ function ScheduleView({ schedule, toggleScheduleItem, updateScheduleItemDate, re
 // Resources Component
 function ResourcesView() {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [newResource, setNewResource] = useState({
     type: 'book',
     title: '',
@@ -608,42 +651,87 @@ function ResourcesView() {
   });
   const [resourceList, setResourceList] = useState(resources);
 
-  const handleAddResource = () => {
-    if (newResource.title.trim()) {
-      const resource = {
-        id: Date.now(),
-        ...newResource,
-        topics: newResource.topics.map(t => parseInt(t))
-      };
+  useEffect(() => {
+    let isMounted = true;
 
-      // Add to appropriate category
-      const updatedResources = { ...resourceList };
-      if (newResource.type === 'book') {
-        updatedResources.books = [...updatedResources.books, resource];
-      } else if (newResource.type === 'journal') {
-        updatedResources.journals = [...updatedResources.journals, resource];
-      } else if (newResource.type === 'link') {
-        updatedResources.links = [...updatedResources.links, resource];
+    const loadResources = async () => {
+      try {
+        const firebaseResources = await fetchResources();
+        const hasData =
+          firebaseResources.books.length ||
+          firebaseResources.journals.length ||
+          firebaseResources.links.length;
+
+        if (isMounted && hasData) {
+          setResourceList({
+            books: firebaseResources.books,
+            journals: firebaseResources.journals,
+            links: firebaseResources.links
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load resources from Firebase:', error);
       }
+    };
 
-      setResourceList(updatedResources);
+    loadResources();
 
-      // Reset form
-      setNewResource({
-        type: 'book',
-        title: '',
-        author: '',
-        publisher: '',
-        edition: '',
-        isbn: '',
-        url: '',
-        description: '',
-        topics: []
-      });
-      setShowAddForm(false);
-    } else {
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleAddResource = async () => {
+    if (!newResource.title.trim()) {
       alert('Please fill in the required fields');
+      return;
     }
+
+    const resourcePayload = {
+      type: newResource.type,
+      title: newResource.title,
+      author: newResource.author,
+      publisher: newResource.publisher,
+      edition: newResource.edition,
+      isbn: newResource.isbn,
+      url: newResource.url,
+      description: newResource.description,
+      topics: newResource.topics.map(t => parseInt(t, 10))
+    };
+
+    const categoryKey = newResource.type === 'journal' ? 'journals' : newResource.type === 'link' ? 'links' : 'books';
+    let resourceToAdd = {
+      id: Date.now().toString(),
+      ...resourcePayload
+    };
+
+    try {
+      setIsSaving(true);
+      resourceToAdd = await addResourceToFirebase(resourcePayload);
+    } catch (error) {
+      console.error('Failed to add resource to Firebase:', error);
+      alert('Resource saved locally (cloud sync unavailable).');
+    } finally {
+      setIsSaving(false);
+    }
+
+    setResourceList(prev => ({
+      ...prev,
+      [categoryKey]: [...prev[categoryKey], resourceToAdd]
+    }));
+
+    setNewResource({
+      type: 'book',
+      title: '',
+      author: '',
+      publisher: '',
+      edition: '',
+      isbn: '',
+      url: '',
+      description: '',
+      topics: []
+    });
+    setShowAddForm(false);
   };
 
   const handleTopicToggle = (topicId) => {
@@ -805,9 +893,10 @@ function ResourcesView() {
               </button>
               <button
                 onClick={handleAddResource}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={isSaving}
+                className={`px-6 py-2 rounded-lg transition-colors ${isSaving ? 'bg-blue-300 text-white cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
               >
-                Add Resource
+                {isSaving ? 'Saving…' : 'Add Resource'}
               </button>
             </div>
           </div>
@@ -874,6 +963,7 @@ function ResourcesView() {
 // Projects Component
 function ProjectsView() {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isSavingProject, setIsSavingProject] = useState(false);
   const [newProject, setNewProject] = useState({
     title: '',
     description: '',
@@ -885,35 +975,71 @@ function ProjectsView() {
   });
   const [projectList, setProjectList] = useState(projects);
 
-  const handleAddProject = () => {
-    if (newProject.title.trim() && newProject.dueDate) {
-      const project = {
-        id: Date.now(),
-        title: newProject.title,
-        description: newProject.description,
-        duration: newProject.duration,
-        topic: newProject.topic,
-        subtopic: newProject.subtopic,
-        deliverables: newProject.deliverables.filter(d => d.trim()),
-        dueDate: newProject.dueDate
-      };
+  useEffect(() => {
+    let isMounted = true;
 
-      setProjectList([...projectList, project]);
+    const loadProjects = async () => {
+      try {
+        const firebaseProjects = await fetchProjects();
+        if (isMounted && firebaseProjects.length) {
+          const sortedProjects = [...firebaseProjects].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+          setProjectList(sortedProjects);
+        }
+      } catch (error) {
+        console.error('Failed to load projects from Firebase:', error);
+      }
+    };
 
-      // Reset form
-      setNewProject({
-        title: '',
-        description: '',
-        duration: '',
-        topic: 1,
-        subtopic: '',
-        deliverables: [''],
-        dueDate: ''
-      });
-      setShowAddForm(false);
-    } else {
+    loadProjects();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleAddProject = async () => {
+    if (!(newProject.title.trim() && newProject.dueDate)) {
       alert('Please fill in the required fields (Title and Due Date)');
+      return;
     }
+
+    const projectPayload = {
+      title: newProject.title,
+      description: newProject.description,
+      duration: newProject.duration,
+      topic: newProject.topic,
+      subtopic: newProject.subtopic,
+      deliverables: newProject.deliverables.filter(d => d.trim()),
+      dueDate: newProject.dueDate
+    };
+
+    let projectToAdd = {
+      id: Date.now().toString(),
+      ...projectPayload
+    };
+
+    try {
+      setIsSavingProject(true);
+      projectToAdd = await addProjectToFirebase(projectPayload);
+    } catch (error) {
+      console.error('Failed to add project to Firebase:', error);
+      alert('Project saved locally (cloud sync unavailable).');
+    } finally {
+      setIsSavingProject(false);
+    }
+
+    setProjectList(prev => [...prev, projectToAdd].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)));
+
+    setNewProject({
+      title: '',
+      description: '',
+      duration: '',
+      topic: 1,
+      subtopic: '',
+      deliverables: [''],
+      dueDate: ''
+    });
+    setShowAddForm(false);
   };
 
   const handleDeliverableChange = (index, value) => {
@@ -931,15 +1057,25 @@ function ProjectsView() {
     setNewProject({ ...newProject, deliverables: newDeliverables });
   };
 
-  const clearAllProjects = () => {
+  const clearAllProjects = async () => {
     if (window.confirm('Are you sure you want to clear all projects? This action cannot be undone.')) {
       setProjectList([]);
+      try {
+        await clearProjectsFromFirebase();
+      } catch (error) {
+        console.error('Failed to clear projects from Firebase:', error);
+      }
     }
   };
 
-  const removeProject = (projectId) => {
+  const removeProject = async (projectId) => {
     if (window.confirm('Are you sure you want to remove this project?')) {
-      setProjectList(projectList.filter(project => project.id !== projectId));
+      setProjectList(prev => prev.filter(project => project.id !== projectId));
+      try {
+        await deleteProjectFromFirebase(projectId);
+      } catch (error) {
+        console.error('Failed to delete project from Firebase:', error);
+      }
     }
   };
 
@@ -1088,9 +1224,10 @@ function ProjectsView() {
               </button>
               <button
                 onClick={handleAddProject}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={isSavingProject}
+                className={`px-6 py-2 rounded-lg transition-colors ${isSavingProject ? 'bg-blue-300 text-white cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
               >
-                Add Project
+                {isSavingProject ? 'Saving…' : 'Add Project'}
               </button>
             </div>
           </div>
