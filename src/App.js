@@ -282,7 +282,7 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {currentView === 'dashboard' && <DashboardView schedule={schedule} />}
         {currentView === 'curriculum' && <CurriculumView topics={filteredTopics} selectedLevel={selectedLevel} setSelectedLevel={setSelectedLevel} selectedTopic={selectedTopic} setSelectedTopic={setSelectedTopic} addToSchedule={addToSchedule} />}
-        {currentView === 'schedule' && <ScheduleView schedule={schedule} toggleScheduleItem={toggleScheduleItem} updateScheduleItemDate={updateScheduleItemDate} removeScheduleItem={removeScheduleItem} toggleSubtopic={toggleSubtopic} />}
+        {currentView === 'schedule' && <ScheduleView schedule={schedule} toggleScheduleItem={toggleScheduleItem} updateScheduleItemDate={updateScheduleItemDate} removeScheduleItem={removeScheduleItem} toggleSubtopic={toggleSubtopic} addToSchedule={addToSchedule} />}
         {currentView === 'resources' && <ResourcesView />}
         {currentView === 'projects' && <ProjectsView />}
         {currentView === 'questions' && <QuestionsView questions={allQuestions} onAddQuestion={addCustomQuestion} onUpdateQuestion={updateCustomQuestion} onDeleteQuestion={deleteCustomQuestion} />}
@@ -471,9 +471,15 @@ function CurriculumView({ topics, selectedLevel, setSelectedLevel, selectedTopic
 }
 
 // Schedule Component
-function ScheduleView({ schedule, toggleScheduleItem, updateScheduleItemDate, removeScheduleItem, toggleSubtopic }) {
+function ScheduleView({ schedule, toggleScheduleItem, updateScheduleItemDate, removeScheduleItem, toggleSubtopic, addToSchedule }) {
   const [editingItem, setEditingItem] = useState(null);
   const [newDate, setNewDate] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newSession, setNewSession] = useState({
+    topicId: curriculumTopics[0]?.id || 1,
+    subtopic: '',
+    date: ''
+  });
 
   const handleEditDate = (item) => {
     setEditingItem(item.id);
@@ -512,10 +518,95 @@ function ScheduleView({ schedule, toggleScheduleItem, updateScheduleItemDate, re
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold text-gray-900">Schedule</h2>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-          Add New Session
+        <button
+          type="button"
+          onClick={() => setShowAddForm(prev => !prev)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          {showAddForm ? 'Cancel' : 'Add New Session'}
         </button>
       </div>
+
+      {showAddForm && (
+        <div className="bg-white rounded-lg shadow-lg p-6 space-y-4">
+          <h3 className="text-xl font-semibold text-gray-900">New Session</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Topic</label>
+              <select
+                value={newSession.topicId}
+                onChange={(e) => {
+                  const topicId = parseInt(e.target.value, 10);
+                  setNewSession(prev => ({
+                    ...prev,
+                    topicId,
+                    subtopic: ''
+                  }));
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {curriculumTopics.map(topic => (
+                  <option key={topic.id} value={topic.id}>
+                    {topic.topic}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+              <input
+                type="date"
+                value={newSession.date}
+                onChange={(e) => setNewSession(prev => ({ ...prev, date: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Subtopic (optional)</label>
+            <select
+              value={newSession.subtopic}
+              onChange={(e) => setNewSession(prev => ({ ...prev, subtopic: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">-- None --</option>
+              {curriculumTopics
+                .find(topic => topic.id === newSession.topicId)
+                ?.subtopics.map((sub, index) => (
+                  <option key={index} value={sub}>
+                    {sub}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (!newSession.date) {
+                  alert('Please pick a date for the session.');
+                  return;
+                }
+                const topic = curriculumTopics.find(t => t.id === newSession.topicId);
+                if (!topic) {
+                  alert('Please select a topic.');
+                  return;
+                }
+                addToSchedule(topic, newSession.date, newSession.subtopic || null);
+                setNewSession({
+                  topicId: curriculumTopics[0]?.id || 1,
+                  subtopic: '',
+                  date: ''
+                });
+                setShowAddForm(false);
+              }}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Save Session
+            </button>
+          </div>
+        </div>
+      )}
 
       {Object.keys(groupedSchedule).length === 0 ? (
         <div className="text-center py-12">
