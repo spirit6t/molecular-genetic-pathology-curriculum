@@ -1,4 +1,4 @@
-import { addDoc, collection, getDocs } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 const COLLECTION_NAME = 'resources';
@@ -35,6 +35,14 @@ export const addResource = async (resource) => {
     id: docRef.id,
     ...resource
   };
+};
+
+export const updateResource = async (resourceId, resource) => {
+  await setDoc(doc(db, COLLECTION_NAME, resourceId), resource, { merge: true });
+};
+
+export const deleteResource = async (resourceId) => {
+  await deleteDoc(doc(db, COLLECTION_NAME, resourceId));
 };
 
 

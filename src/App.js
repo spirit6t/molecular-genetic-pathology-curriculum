@@ -23,19 +23,30 @@ function App() {
   const [schedule, setSchedule] = useState([]);
   const [customQuestions, setCustomQuestions] = useState([]);
 
+  const normalizeScheduleItem = (item) => {
+    const dateValue = item.date && typeof item.date === 'object' && item.date.toDate
+      ? item.date.toDate().toISOString().split('T')[0]
+      : item.date;
+
+    return {
+      ...item,
+      id: String(item.id),
+      date: dateValue || '',
+      completed: Boolean(item.completed),
+      completedSubtopics: Array.isArray(item.completedSubtopics) ? item.completedSubtopics : []
+    };
+  };
+
+  const sortSchedule = (items) =>
+    [...items].sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+
   // Load schedule from Firebase with local fallback
   useEffect(() => {
     const loadSchedule = async () => {
       try {
         const firebaseSchedule = await fetchScheduleItems();
         if (firebaseSchedule.length > 0) {
-          const sanitized = firebaseSchedule
-            .map(item => ({
-              ...item,
-              id: String(item.id),
-              completedSubtopics: item.completedSubtopics || []
-            }))
-            .sort((a, b) => new Date(a.date) - new Date(b.date));
+          const sanitized = sortSchedule(firebaseSchedule.map(normalizeScheduleItem));
           setSchedule(sanitized);
           localStorage.setItem('curriculumSchedule', JSON.stringify(sanitized));
           return;
@@ -46,8 +57,8 @@ function App() {
 
       const savedSchedule = localStorage.getItem('curriculumSchedule');
       if (savedSchedule) {
-        const parsed = JSON.parse(savedSchedule);
-        setSchedule(parsed.sort((a, b) => new Date(a.date) - new Date(b.date)));
+        const parsed = JSON.parse(savedSchedule).map(normalizeScheduleItem);
+        setSchedule(sortSchedule(parsed));
       }
     };
 
@@ -75,17 +86,12 @@ function App() {
 
   // Save schedule to localStorage
   const saveSchedule = (newSchedule) => {
-    const sanitized = newSchedule.map(item => ({
-      ...item,
-      id: String(item.id),
-      completedSubtopics: item.completedSubtopics || []
-    }));
-    const sorted = sanitized.sort((a, b) => new Date(a.date) - new Date(b.date));
+    const sanitized = sortSchedule(newSchedule.map(normalizeScheduleItem));
 
-    setSchedule(sorted);
-    localStorage.setItem('curriculumSchedule', JSON.stringify(sorted));
+    setSchedule(sanitized);
+    localStorage.setItem('curriculumSchedule', JSON.stringify(sanitized));
 
-    replaceScheduleItems(sorted).catch(error => {
+    replaceScheduleItems(sanitized).catch(error => {
       console.error('Failed to sync schedule with Firebase:', error);
     });
   };
@@ -694,7 +700,7 @@ function ResourcesView() {
       return;
     }
 
-  const resourcePayload = {
+    const resourcePayload = {
       type: newResource.type,
       title: newResource.title,
       author: newResource.author,
@@ -703,41 +709,41 @@ function ResourcesView() {
       isbn: newResource.isbn,
       url: newResource.url,
       description: newResource.description,
-    impactFactor: newResource.type === 'journal' ? newResource.impactFactor : '',
-    topics: newResource.topics.map(t => parseInt(t, 10))
+      impactFactor: newResource.type === 'journal' ? newResource.impactFactor : '',
+      topics: newResource.topics.map(t => parseInt(t, 10))
     };
 
     const categoryKey = newResource.type === 'journal' ? 'journals' : newResource.type === 'link' ? 'links' : 'books';
-  let resourceId = editingResource?.id || Date.now().toString();
-  let resourceToPersist = {
-    id: resourceId,
-    ...resourcePayload
-  };
-
-  try {
-    setIsSaving(true);
-    if (editingResource) {
-      await updateResourceInFirebase(resourceId, resourcePayload);
-    } else {
-      resourceToPersist = await addResourceToFirebase(resourcePayload);
-      resourceId = resourceToPersist.id;
-    }
-  } catch (error) {
-    console.error('Failed to add resource to Firebase:', error);
-    alert(editingResource ? 'Changes saved locally (cloud sync unavailable).' : 'Resource saved locally (cloud sync unavailable).');
-  } finally {
-    setIsSaving(false);
-  }
-
-  setResourceList(prev => {
-    const cleaned = {
-      books: prev.books.filter(r => r.id !== resourceId),
-      journals: prev.journals.filter(r => r.id !== resourceId),
-      links: prev.links.filter(r => r.id !== resourceId)
+    let resourceId = editingResource?.id || Date.now().toString();
+    let resourceToPersist = {
+      id: resourceId,
+      ...resourcePayload
     };
-    cleaned[categoryKey] = [...cleaned[categoryKey], { id: resourceId, ...resourcePayload }];
-    return cleaned;
-  });
+
+    try {
+      setIsSaving(true);
+      if (editingResource) {
+        await updateResourceInFirebase(resourceId, resourcePayload);
+      } else {
+        resourceToPersist = await addResourceToFirebase(resourcePayload);
+        resourceId = resourceToPersist.id;
+      }
+    } catch (error) {
+      console.error('Failed to add resource to Firebase:', error);
+      alert(editingResource ? 'Changes saved locally (cloud sync unavailable).' : 'Resource saved locally (cloud sync unavailable).');
+    } finally {
+      setIsSaving(false);
+    }
+
+    setResourceList(prev => {
+      const cleaned = {
+        books: prev.books.filter(r => r.id !== resourceId),
+        journals: prev.journals.filter(r => r.id !== resourceId),
+        links: prev.links.filter(r => r.id !== resourceId)
+      };
+      cleaned[categoryKey] = [...cleaned[categoryKey], { id: resourceId, ...resourcePayload }];
+      return cleaned;
+    });
 
     setNewResource({
       type: 'book',
@@ -748,10 +754,10 @@ function ResourcesView() {
       isbn: '',
       url: '',
       description: '',
-    impactFactor: '',
+      impactFactor: '',
       topics: []
     });
-  setEditingResource(null);
+    setEditingResource(null);
     setShowAddForm(false);
   };
 
