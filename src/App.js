@@ -220,8 +220,8 @@ function App() {
       <header className="bg-white shadow-lg border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 mr-6">
+            <div className="flex items-center space-x-6">
+              <div className="flex-shrink-0">
                 <img
                   src={`${process.env.PUBLIC_URL || ''}/hca-logo.svg`}
                   alt="HCA Healthcare"
@@ -229,7 +229,7 @@ function App() {
                   loading="lazy"
                 />
               </div>
-              <div className="ml-4">
+              <div>
                 <h1 className="text-2xl font-bold text-gray-900">Molecular Genetic Pathology</h1>
                 <p className="text-sm text-gray-500">Residency Curriculum Management System</p>
               </div>
