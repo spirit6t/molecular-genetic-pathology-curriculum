@@ -220,16 +220,13 @@ function App() {
       <header className="bg-white shadow-lg border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center">
               <div className="flex-shrink-0">
-                <img
-                  src={`${process.env.PUBLIC_URL || ''}/hca-logo.svg`}
-                  alt="HCA Healthcare"
-                  className="h-12 w-auto object-contain"
-                  loading="lazy"
-                />
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">MGP</span>
+                </div>
               </div>
-              <div>
+              <div className="ml-4">
                 <h1 className="text-2xl font-bold text-gray-900">Molecular Genetic Pathology</h1>
                 <p className="text-sm text-gray-500">Residency Curriculum Management System</p>
               </div>
@@ -285,12 +282,39 @@ function App() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {currentView === 'dashboard' && <DashboardView schedule={schedule} />}
-        {currentView === 'curriculum' && <CurriculumView topics={filteredTopics} selectedLevel={selectedLevel} setSelectedLevel={setSelectedLevel} selectedTopic={selectedTopic} setSelectedTopic={setSelectedTopic} addToSchedule={addToSchedule} />}
-        {currentView === 'schedule' && <ScheduleView schedule={schedule} toggleScheduleItem={toggleScheduleItem} updateScheduleItemDate={updateScheduleItemDate} removeScheduleItem={removeScheduleItem} toggleSubtopic={toggleSubtopic} addToSchedule={addToSchedule} />}
+        {currentView === 'curriculum' && (
+          <CurriculumView
+            topics={filteredTopics}
+            selectedLevel={selectedLevel}
+            setSelectedLevel={setSelectedLevel}
+            selectedTopic={selectedTopic}
+            setSelectedTopic={setSelectedTopic}
+            addToSchedule={addToSchedule}
+          />
+        )}
+        {currentView === 'schedule' && (
+          <ScheduleView
+            schedule={schedule}
+            toggleScheduleItem={toggleScheduleItem}
+            updateScheduleItemDate={updateScheduleItemDate}
+            removeScheduleItem={removeScheduleItem}
+            toggleSubtopic={toggleSubtopic}
+            addToSchedule={addToSchedule}
+          />
+        )}
         {currentView === 'resources' && <ResourcesView />}
         {currentView === 'projects' && <ProjectsView />}
-        {currentView === 'questions' && <QuestionsView questions={allQuestions} onAddQuestion={addCustomQuestion} onUpdateQuestion={updateCustomQuestion} onDeleteQuestion={deleteCustomQuestion} />}
-        {currentView === 'planner' && <CurriculumPlannerView schedule={schedule} addToSchedule={addToSchedule} />}
+        {currentView === 'questions' && (
+          <QuestionsView
+            questions={allQuestions}
+            onAddQuestion={addCustomQuestion}
+            onUpdateQuestion={updateCustomQuestion}
+            onDeleteQuestion={deleteCustomQuestion}
+          />
+        )}
+        {currentView === 'planner' && (
+          <CurriculumPlannerView schedule={schedule} addToSchedule={addToSchedule} />
+        )}
       </main>
     </div>
   );
@@ -1475,20 +1499,20 @@ function ProjectsView() {
                   <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
                     Due: {new Date(project.dueDate).toLocaleDateString()}
                   </span>
-                <button
-                  onClick={() => handleEditProject(project)}
-                  className="text-blue-600 hover:text-blue-700 text-sm"
-                  title="Edit project"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => removeProject(project.id)}
-                  className="text-red-600 hover:text-red-700 text-sm"
-                  title="Remove project"
-                >
-                  ✕
-                </button>
+                  <button
+                    onClick={() => handleEditProject(project)}
+                    className="text-blue-600 hover:text-blue-700 text-sm"
+                    title="Edit project"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => removeProject(project.id)}
+                    className="text-red-600 hover:text-red-700 text-sm"
+                    title="Remove project"
+                  >
+                    ✕
+                  </button>
                 </div>
               </div>
 
