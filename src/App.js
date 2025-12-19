@@ -879,6 +879,24 @@ function ResourcesView() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingResource, setEditingResource] = useState(null);
+  const [activeTab, setActiveTab] = useState('resources'); // 'resources' or 'images'
+  const [showImageUpload, setShowImageUpload] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imageFilterTopic, setImageFilterTopic] = useState('All');
+  const [imageFilterSubtopic, setImageFilterSubtopic] = useState('All');
+  const [images, setImages] = useState(() => {
+    // Load images from localStorage
+    const saved = localStorage.getItem('imageBank');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [newImage, setNewImage] = useState({
+    file: null,
+    preview: null,
+    topic: 1,
+    subtopic: '',
+    description: '',
+    source: ''
+  });
   const [newResource, setNewResource] = useState({
     type: 'book',
     title: '',
@@ -1033,17 +1051,395 @@ function ResourcesView() {
     }
   };
 
+  // Image Bank Functions
+  const handleImageSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image size must be less than 5MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setNewImage({
+          ...newImage,
+          file: file,
+          preview: e.target.result
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddImage = () => {
+    if (!newImage.file || !newImage.topic) {
+      alert('Please select an image and topic');
+      return;
+    }
+
+    const imageData = {
+      id: Date.now().toString(),
+      data: newImage.preview, // base64 encoded image
+      topic: newImage.topic,
+      subtopic: newImage.subtopic || '',
+      description: newImage.description || '',
+      fileName: newImage.file.name,
+      fileSize: newImage.file.size,
+      uploadedAt: new Date().toISOString()
+    };
+
+    const updatedImages = [...images, imageData];
+    setImages(updatedImages);
+    localStorage.setItem('imageBank', JSON.stringify(updatedImages));
+
+    // Reset form
+    setNewImage({
+      file: null,
+      preview: null,
+      topic: 1,
+      subtopic: '',
+      description: '',
+      source: ''
+    });
+    setShowImageUpload(false);
+    // Reset file input
+    const fileInput = document.getElementById('image-upload-input');
+    if (fileInput) fileInput.value = '';
+  };
+
+  const handleDeleteImage = (imageId) => {
+    if (!window.confirm('Are you sure you want to delete this image?')) {
+      return;
+    }
+
+    const updatedImages = images.filter(img => img.id !== imageId);
+    setImages(updatedImages);
+    localStorage.setItem('imageBank', JSON.stringify(updatedImages));
+  };
+
+  const getAvailableImageSubtopics = () => {
+    if (imageFilterTopic === 'All') {
+      const allSubtopics = new Set();
+      images.forEach(img => {
+        if (img.subtopic) allSubtopics.add(img.subtopic);
+      });
+      return Array.from(allSubtopics).sort();
+    }
+    const topic = curriculumTopics.find(t => t.id === parseInt(imageFilterTopic));
+    if (topic) {
+      const subtopics = new Set(topic.subtopics);
+      images.forEach(img => {
+        if (img.topic === topic.id && img.subtopic) subtopics.add(img.subtopic);
+      });
+      return Array.from(subtopics).sort();
+    }
+    return [];
+  };
+
+  const getFilteredImages = () => {
+    let filtered = [...images];
+
+    if (imageFilterTopic !== 'All') {
+      filtered = filtered.filter(img => img.topic === parseInt(imageFilterTopic));
+    }
+
+    if (imageFilterSubtopic !== 'All') {
+      filtered = filtered.filter(img => img.subtopic === imageFilterSubtopic);
+    }
+
+    return filtered;
+  };
+
+  // Reset subtopic filter when topic changes
+  useEffect(() => {
+    if (imageFilterTopic === 'All') {
+      setImageFilterSubtopic('All');
+    } else {
+      const availableSubtopics = getAvailableImageSubtopics();
+      if (imageFilterSubtopic !== 'All' && !availableSubtopics.includes(imageFilterSubtopic)) {
+        setImageFilterSubtopic('All');
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageFilterTopic, images]);
+
+  const filteredImages = getFilteredImages();
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold text-gray-900">Learning Resources</h2>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          {showAddForm ? 'Cancel' : 'Add Resource'}
-        </button>
+        <div className="flex space-x-2">
+          {activeTab === 'images' && (
+            <button
+              onClick={() => setShowImageUpload(!showImageUpload)}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              {showImageUpload ? 'Cancel' : 'Upload Image'}
+            </button>
+          )}
+          {activeTab === 'resources' && (
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              {showAddForm ? 'Cancel' : 'Add Resource'}
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('resources')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'resources'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            📚 Resources
+          </button>
+          <button
+            onClick={() => setActiveTab('images')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'images'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            🖼️ Image Bank ({images.length})
+          </button>
+        </nav>
+      </div>
+
+      {/* Image Bank Tab */}
+      {activeTab === 'images' && (
+        <>
+          {showImageUpload && (
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Upload Image</h3>
+              <div className="space-y-4">
+                {/* Image Preview */}
+                {newImage.preview && (
+                  <div className="flex justify-center">
+                    <img
+                      src={newImage.preview}
+                      alt="Preview"
+                      className="max-w-full max-h-64 rounded-lg border border-gray-300"
+                    />
+                  </div>
+                )}
+
+                {/* File Input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Image *</label>
+                  <input
+                    id="image-upload-input"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Max file size: 5MB</p>
+                </div>
+
+                {/* Topic Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Topic *</label>
+                  <select
+                    value={newImage.topic}
+                    onChange={(e) => setNewImage({ ...newImage, topic: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  >
+                    {curriculumTopics.map(topic => (
+                      <option key={topic.id} value={topic.id}>{topic.topic}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Subtopic Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Subtopic</label>
+                  <input
+                    type="text"
+                    value={newImage.subtopic}
+                    onChange={(e) => setNewImage({ ...newImage, subtopic: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="e.g., Hardy Weinberg Principle"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                  <textarea
+                    value={newImage.description}
+                    onChange={(e) => setNewImage({ ...newImage, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    rows={3}
+                    placeholder="Optional description of the image..."
+                  />
+                </div>
+
+                {/* Source */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Source</label>
+                  <input
+                    type="text"
+                    value={newImage.source}
+                    onChange={(e) => setNewImage({ ...newImage, source: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="e.g., Textbook name, Journal article, Website URL, etc."
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleAddImage}
+                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Upload Image
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Image Filters */}
+          <div className="bg-white rounded-lg shadow-md p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Topic</label>
+                <select
+                  value={imageFilterTopic}
+                  onChange={(e) => setImageFilterTopic(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="All">All Topics</option>
+                  {curriculumTopics.map(topic => (
+                    <option key={topic.id} value={topic.id}>{topic.topic}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Subtopic</label>
+                <select
+                  value={imageFilterSubtopic}
+                  onChange={(e) => setImageFilterSubtopic(e.target.value)}
+                  disabled={imageFilterTopic === 'All'}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                    imageFilterTopic === 'All' ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
+                >
+                  <option value="All">All Subtopics</option>
+                  {getAvailableImageSubtopics().map(subtopic => (
+                    <option key={subtopic} value={subtopic}>{subtopic}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-end">
+                <div className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg">
+                  <span className="text-sm text-gray-700">
+                    Showing <span className="font-semibold">{filteredImages.length}</span> of{' '}
+                    <span className="font-semibold">{images.length}</span> images
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {(imageFilterTopic !== 'All' || imageFilterSubtopic !== 'All') && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    setImageFilterTopic('All');
+                    setImageFilterSubtopic('All');
+                  }}
+                  className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Image Gallery */}
+          {filteredImages.length === 0 ? (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+              <p className="text-yellow-800">
+                {images.length === 0 
+                  ? 'No images uploaded yet. Click "Upload Image" to get started.'
+                  : 'No images found matching the selected filters.'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredImages.map((image) => (
+                <div key={image.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                  <div
+                    className="aspect-square bg-gray-100 cursor-pointer relative group"
+                    onClick={() => setSelectedImage(image)}
+                  >
+                    <img
+                      src={image.data}
+                      alt={image.description || image.fileName}
+                      className="w-full h-full object-contain"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center">
+                      <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">
+                        Click to view full size
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-3">
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      <span className="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full">
+                        {curriculumTopics.find(t => t.id === image.topic)?.topic || `Topic ${image.topic}`}
+                      </span>
+                      {image.subtopic && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+                          {image.subtopic}
+                        </span>
+                      )}
+                    </div>
+                    {image.description && (
+                      <p className="text-sm text-gray-700 mb-2 line-clamp-2">{image.description}</p>
+                    )}
+                    {image.source && (
+                      <p className="text-xs text-blue-600 mb-2 font-medium">Source: {image.source}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mb-2">{image.fileName}</p>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteImage(image.id);
+                      }}
+                      className="w-full px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Resources Tab */}
+      {activeTab === 'resources' && (
+        <>
 
       {showAddForm && (
         <div className="bg-white rounded-lg shadow-lg p-6">
@@ -1291,6 +1687,50 @@ function ResourcesView() {
           ))}
         </div>
       </div>
+        </>
+      )}
+
+      {/* Image Modal */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto relative">
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold z-10 bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg"
+            >
+              ×
+            </button>
+            <img
+              src={selectedImage.data}
+              alt={selectedImage.description || selectedImage.fileName}
+              className="w-full h-auto"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="p-4">
+              <div className="flex flex-wrap gap-2 mb-2">
+                <span className="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full">
+                  {curriculumTopics.find(t => t.id === selectedImage.topic)?.topic || `Topic ${selectedImage.topic}`}
+                </span>
+                {selectedImage.subtopic && (
+                  <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+                    {selectedImage.subtopic}
+                  </span>
+                )}
+              </div>
+              {selectedImage.description && (
+                <p className="text-sm text-gray-700 mb-2">{selectedImage.description}</p>
+              )}
+              {selectedImage.source && (
+                <p className="text-sm text-blue-600 mb-2 font-medium">Source: {selectedImage.source}</p>
+              )}
+              <p className="text-xs text-gray-500">{selectedImage.fileName}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
