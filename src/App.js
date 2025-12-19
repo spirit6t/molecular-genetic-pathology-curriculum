@@ -9,6 +9,7 @@ import {
   updateResource as updateResourceInFirebase,
   deleteResource as deleteResourceInFirebase
 } from './firebaseResourcesService';
+// eslint-disable-next-line no-unused-vars
 import {
   uploadImage,
   getAllImages,
@@ -891,6 +892,42 @@ function ResourcesView() {
   const [imageFilterSubtopic, setImageFilterSubtopic] = useState('All');
   const [images, setImages] = useState([]);
   const [imagesLoading, setImagesLoading] = useState(true);
+
+  // Load images from Firebase
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadImages = async () => {
+      try {
+        setImagesLoading(true);
+        const firebaseImages = await getAllImages();
+        if (isMounted) {
+          setImages(firebaseImages);
+          // Also save to localStorage as backup
+          localStorage.setItem('imageBank', JSON.stringify(firebaseImages));
+        }
+      } catch (error) {
+        console.error('Failed to load images from Firebase:', error);
+        // Fallback to localStorage
+        if (isMounted) {
+          const saved = localStorage.getItem('imageBank');
+          if (saved) {
+            setImages(JSON.parse(saved));
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setImagesLoading(false);
+        }
+      }
+    };
+
+    loadImages();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
   const [newImage, setNewImage] = useState({
     file: null,
     preview: null,
