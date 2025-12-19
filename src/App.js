@@ -10,6 +10,11 @@ import {
   deleteResource as deleteResourceInFirebase
 } from './firebaseResourcesService';
 import {
+  uploadImage,
+  getAllImages,
+  deleteImage as deleteImageFromFirebase
+} from './firebaseImageService';
+import {
   fetchProjects,
   addProject as addProjectToFirebase,
   deleteProject as deleteProjectFromFirebase,
@@ -884,11 +889,8 @@ function ResourcesView() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageFilterTopic, setImageFilterTopic] = useState('All');
   const [imageFilterSubtopic, setImageFilterSubtopic] = useState('All');
-  const [images, setImages] = useState(() => {
-    // Load images from localStorage
-    const saved = localStorage.getItem('imageBank');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [images, setImages] = useState([]);
+  const [imagesLoading, setImagesLoading] = useState(true);
   const [newImage, setNewImage] = useState({
     file: null,
     preview: null,
@@ -1077,50 +1079,85 @@ function ResourcesView() {
     }
   };
 
-  const handleAddImage = () => {
+  const handleAddImage = async () => {
     if (!newImage.file || !newImage.topic) {
       alert('Please select an image and topic');
       return;
     }
 
-    const imageData = {
-      id: Date.now().toString(),
-      data: newImage.preview, // base64 encoded image
-      topic: newImage.topic,
-      subtopic: newImage.subtopic || '',
-      description: newImage.description || '',
-      fileName: newImage.file.name,
-      fileSize: newImage.file.size,
-      uploadedAt: new Date().toISOString()
-    };
+    try {
+      setIsSaving(true);
+      
+      const metadata = {
+        topic: newImage.topic,
+        subtopic: newImage.subtopic || '',
+        description: newImage.description || '',
+        source: newImage.source || ''
+      };
 
-    const updatedImages = [...images, imageData];
-    setImages(updatedImages);
-    localStorage.setItem('imageBank', JSON.stringify(updatedImages));
+      // Upload to Firebase Storage
+      const uploadedImage = await uploadImage(newImage.file, metadata);
 
-    // Reset form
-    setNewImage({
-      file: null,
-      preview: null,
-      topic: 1,
-      subtopic: '',
-      description: '',
-      source: ''
-    });
-    setShowImageUpload(false);
-    // Reset file input
-    const fileInput = document.getElementById('image-upload-input');
-    if (fileInput) fileInput.value = '';
+      // Update state
+      setImages(prev => {
+        const updated = [...prev, uploadedImage];
+        // Also save to localStorage as backup
+        localStorage.setItem('imageBank', JSON.stringify(updated));
+        return updated;
+      });
+
+      // Reset form
+      setNewImage({
+        file: null,
+        preview: null,
+        topic: 1,
+        subtopic: '',
+        description: '',
+        source: ''
+      });
+      setShowImageUpload(false);
+      
+      // Reset file input
+      const fileInput = document.getElementById('image-upload-input');
+      if (fileInput) fileInput.value = '';
+      
+      alert('Image uploaded successfully!');
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleDeleteImage = (imageId) => {
+  const handleDeleteImage = async (image) => {
     if (!window.confirm('Are you sure you want to delete this image?')) {
       return;
     }
 
-    const updatedImages = images.filter(img => img.id !== imageId);
-    setImages(updatedImages);
-    localStorage.setItem('imageBank', JSON.stringify(updatedImages));
+    try {
+      // Delete from Firebase
+      await deleteImageFromFirebase(image.id, image.storagePath);
+
+      // Update state
+      setImages(prev => {
+        const updated = prev.filter(img => img.id !== image.id);
+        // Also update localStorage
+        localStorage.setItem('imageBank', JSON.stringify(updated));
+        return updated;
+      });
+
+      alert('Image deleted successfully!');
+    } catch (error) {
+      console.error('Failed to delete image:', error);
+      // Fallback: remove from state even if Firebase delete fails
+      setImages(prev => {
+        const updated = prev.filter(img => img.id !== image.id);
+        localStorage.setItem('imageBank', JSON.stringify(updated));
+        return updated;
+      });
+      alert('Image removed locally (Firebase delete may have failed).');
+    }
   };
 
   const getAvailableImageSubtopics = () => {
@@ -1308,7 +1345,7 @@ function ResourcesView() {
                     onClick={handleAddImage}
                     className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
                   >
-                    Upload Image
+                    {isSaving ? 'Uploading...' : 'Upload Image'}
                   </button>
                 </div>
               </div>
@@ -1375,7 +1412,11 @@ function ResourcesView() {
           </div>
 
           {/* Image Gallery */}
-          {filteredImages.length === 0 ? (
+          {imagesLoading ? (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+              <p className="text-blue-800">Loading images...</p>
+            </div>
+          ) : filteredImages.length === 0 ? (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
               <p className="text-yellow-800">
                 {images.length === 0 
@@ -1392,7 +1433,7 @@ function ResourcesView() {
                     onClick={() => setSelectedImage(image)}
                   >
                     <img
-                      src={image.data}
+                      src={image.downloadURL || image.data}
                       alt={image.description || image.fileName}
                       className="w-full h-full object-contain"
                     />
@@ -1423,7 +1464,7 @@ function ResourcesView() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteImage(image.id);
+                        handleDeleteImage(image);
                       }}
                       className="w-full px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
                     >
@@ -1704,7 +1745,7 @@ function ResourcesView() {
               ×
             </button>
             <img
-              src={selectedImage.data}
+              src={selectedImage.downloadURL || selectedImage.data}
               alt={selectedImage.description || selectedImage.fileName}
               className="w-full h-auto"
               onClick={(e) => e.stopPropagation()}
