@@ -23,6 +23,11 @@ function App() {
   const [selectedLevel, setSelectedLevel] = useState('All');
   const [schedule, setSchedule] = useState([]);
   const [customQuestions, setCustomQuestions] = useState([]);
+  const [deletedDefaultQuestionIds, setDeletedDefaultQuestionIds] = useState(() => {
+    // Load deleted default question IDs from localStorage
+    const saved = localStorage.getItem('deletedDefaultQuestionIds');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const normalizeScheduleItem = (item) => {
     const dateValue = item.date && typeof item.date === 'object' && item.date.toDate
@@ -176,43 +181,148 @@ function App() {
   };
 
   const updateCustomQuestion = async (questionId, updatedQuestion) => {
+    // Convert questionId to string for consistent comparison (Firebase IDs are strings)
+    const questionIdStr = String(questionId);
+    
     try {
-      const updated = await updateQuestion(questionId, updatedQuestion);
-      setCustomQuestions(prev => prev.map(q => q.id === questionId ? updated : q));
-      // Also update localStorage
-      const updatedQuestions = customQuestions.map(q => q.id === questionId ? updated : q);
-      localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+      const updated = await updateQuestion(questionIdStr, updatedQuestion);
+      setCustomQuestions(prev => {
+        const updatedQuestions = prev.map(q => String(q.id) === questionIdStr ? updated : q);
+        localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+        return updatedQuestions;
+      });
     } catch (error) {
       console.error('Failed to update question in Firebase:', error);
       // Fallback to localStorage
-      const updatedQuestions = customQuestions.map(q =>
-        q.id === questionId ? { ...q, ...updatedQuestion, updatedAt: new Date().toISOString() } : q
-      );
-      setCustomQuestions(updatedQuestions);
-      localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
-      throw error;
+      setCustomQuestions(prev => {
+        const updatedQuestions = prev.map(q =>
+          String(q.id) === questionIdStr 
+            ? { ...q, ...updatedQuestion, updatedAt: new Date().toISOString() } 
+            : q
+        );
+        localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+        return updatedQuestions;
+      });
+      // Don't throw error - we've saved locally as fallback
+      console.log('Question updated locally as fallback');
     }
   };
 
   const deleteCustomQuestion = async (questionId) => {
+    // Convert questionId to string for consistent comparison (Firebase IDs are strings)
+    const questionIdStr = String(questionId);
+    
     try {
-      await deleteQuestion(questionId);
-      setCustomQuestions(prev => prev.filter(q => q.id !== questionId));
-      // Also update localStorage
-      const updatedQuestions = customQuestions.filter(q => q.id !== questionId);
-      localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+      await deleteQuestion(questionIdStr);
+      setCustomQuestions(prev => {
+        const updatedQuestions = prev.filter(q => String(q.id) !== questionIdStr);
+        localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+        return updatedQuestions;
+      });
     } catch (error) {
       console.error('Failed to delete question from Firebase:', error);
       // Fallback to localStorage
-      const updatedQuestions = customQuestions.filter(q => q.id !== questionId);
-      setCustomQuestions(updatedQuestions);
-      localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
-      throw error;
+      setCustomQuestions(prev => {
+        const updatedQuestions = prev.filter(q => String(q.id) !== questionIdStr);
+        localStorage.setItem('customBoardQuestions', JSON.stringify(updatedQuestions));
+        return updatedQuestions;
+      });
+      // Don't throw error - we've deleted locally as fallback
+      console.log('Question deleted locally as fallback');
     }
   };
 
-  // Combine default and custom questions
-  const allQuestions = [...boardQuestions, ...customQuestions];
+  // Handle updating any question (default or custom)
+  const handleUpdateQuestion = async (questionId, updatedQuestion) => {
+    // Normalize questionId to number for comparison
+    const questionIdNum = Number(questionId);
+    
+    // Check if it's a default question (IDs 1, 2, or 3)
+    const isDefaultQuestion = !isNaN(questionIdNum) && questionIdNum >= 1 && questionIdNum <= 3 && 
+                              boardQuestions.some(q => Number(q.id) === questionIdNum);
+    
+    if (isDefaultQuestion) {
+      // Convert default question to custom by deleting it and creating a new custom one
+      // First, mark the default question as deleted (use the numeric ID)
+      setDeletedDefaultQuestionIds(prev => {
+        if (prev.includes(questionIdNum)) return prev; // Already deleted
+        const updated = [...prev, questionIdNum];
+        localStorage.setItem('deletedDefaultQuestionIds', JSON.stringify(updated));
+        return updated;
+      });
+      
+      // Then add it as a custom question with updates
+      try {
+        const newQuestion = await addQuestion(updatedQuestion);
+        setCustomQuestions(prev => {
+          // Avoid duplicates - check if question with same content already exists
+          const exists = prev.some(q => 
+            q.question === updatedQuestion.question && 
+            q.topic === updatedQuestion.topic
+          );
+          if (exists) {
+            // Update existing instead of adding duplicate
+            return prev.map(q => 
+              q.question === updatedQuestion.question && q.topic === updatedQuestion.topic
+                ? newQuestion 
+                : q
+            );
+          }
+          const updated = [...prev, newQuestion];
+          localStorage.setItem('customBoardQuestions', JSON.stringify(updated));
+          return updated;
+        });
+      } catch (error) {
+        // Fallback to localStorage only
+        console.error('Failed to save to Firebase, saving locally instead:', error);
+        const newQuestion = {
+          ...updatedQuestion,
+          id: Date.now().toString(),
+          isCustom: true,
+          createdAt: new Date().toISOString()
+        };
+        setCustomQuestions(prev => {
+          const updated = [...prev, newQuestion];
+          localStorage.setItem('customBoardQuestions', JSON.stringify(updated));
+          return updated;
+        });
+      }
+    } else {
+      // It's already a custom question, update normally
+      // Convert questionId to string for Firebase (Firebase IDs are strings)
+      await updateCustomQuestion(String(questionId), updatedQuestion);
+    }
+  };
+
+  // Handle deleting any question (default or custom)
+  const handleDeleteQuestion = async (questionId) => {
+    // Normalize questionId to number for comparison
+    const questionIdNum = Number(questionId);
+    
+    // Check if it's a default question (IDs 1, 2, or 3)
+    const isDefaultQuestion = !isNaN(questionIdNum) && questionIdNum >= 1 && questionIdNum <= 3 && 
+                              boardQuestions.some(q => Number(q.id) === questionIdNum);
+    
+    if (isDefaultQuestion) {
+      // Mark default question as deleted (use the numeric ID)
+      setDeletedDefaultQuestionIds(prev => {
+        if (prev.includes(questionIdNum)) return prev; // Already deleted
+        const updated = [...prev, questionIdNum];
+        localStorage.setItem('deletedDefaultQuestionIds', JSON.stringify(updated));
+        return updated;
+      });
+    } else {
+      // It's a custom question, delete normally
+      // Convert questionId to string for Firebase (Firebase IDs are strings)
+      await deleteCustomQuestion(String(questionId));
+    }
+  };
+
+  // Combine default and custom questions, filtering out deleted default questions
+  const allQuestions = [
+    ...boardQuestions.filter(q => !deletedDefaultQuestionIds.includes(Number(q.id))),
+    ...customQuestions
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -308,8 +418,8 @@ function App() {
           <QuestionsView
             questions={allQuestions}
             onAddQuestion={addCustomQuestion}
-            onUpdateQuestion={updateCustomQuestion}
-            onDeleteQuestion={deleteCustomQuestion}
+            onUpdateQuestion={handleUpdateQuestion}
+            onDeleteQuestion={handleDeleteQuestion}
           />
         )}
         {currentView === 'planner' && (
@@ -1558,6 +1668,9 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
   const [showResults, setShowResults] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
+  const [filterTopic, setFilterTopic] = useState('All');
+  const [filterSubtopic, setFilterSubtopic] = useState('All');
+  const [sortBy, setSortBy] = useState('default');
   const [newQuestion, setNewQuestion] = useState({
     question: '',
     options: ['', '', '', ''],
@@ -1580,7 +1693,8 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
     let correct = 0;
     let total = 0;
 
-    questions.forEach(question => {
+    const filtered = getFilteredQuestions();
+    filtered.forEach(question => {
       if (userAnswers[question.id] !== undefined) {
         total++;
         if (userAnswers[question.id] === question.correctAnswer) {
@@ -1624,7 +1738,8 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
       setShowAddForm(false);
     } catch (error) {
       // If onAddQuestion threw, our code already saved to localStorage as fallback
-      alert('Saved locally (cloud sync currently unavailable).');
+      console.error('Error updating question:', error);
+      alert('Question saved locally (cloud sync currently unavailable).');
     }
   };
 
@@ -1719,6 +1834,100 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
     setNewQuestion({ ...newQuestion, options: newOptions });
   };
 
+  // Get available subtopics based on selected topic
+  const getAvailableSubtopics = React.useMemo(() => {
+    if (filterTopic === 'All') {
+      // Return all unique subtopics from all questions
+      const allSubtopics = new Set();
+      questions.forEach(q => {
+        if (q.subtopic) allSubtopics.add(q.subtopic);
+      });
+      return Array.from(allSubtopics).sort();
+    }
+    const topic = curriculumTopics.find(t => t.id === parseInt(filterTopic));
+    if (topic) {
+      // Return subtopics from curriculum topic and also any custom subtopics from questions
+      const subtopics = new Set(topic.subtopics);
+      questions.forEach(q => {
+        if (q.topic === topic.id && q.subtopic) subtopics.add(q.subtopic);
+      });
+      return Array.from(subtopics).sort();
+    }
+    return [];
+  }, [filterTopic, questions]);
+
+  // Filter questions based on selected topic and subtopic
+  const getFilteredQuestions = () => {
+    let filtered = [...questions];
+
+    // Filter by topic
+    if (filterTopic !== 'All') {
+      filtered = filtered.filter(q => q.topic === parseInt(filterTopic));
+    }
+
+    // Filter by subtopic
+    if (filterSubtopic !== 'All') {
+      filtered = filtered.filter(q => q.subtopic === filterSubtopic);
+    }
+
+    return filtered;
+  };
+
+  // Sort questions
+  const getSortedQuestions = (filteredQuestions) => {
+    const sorted = [...filteredQuestions];
+
+    switch (sortBy) {
+      case 'topic':
+        return sorted.sort((a, b) => {
+          if (a.topic !== b.topic) return a.topic - b.topic;
+          // If same topic, sort by subtopic
+          const subtopicA = a.subtopic || '';
+          const subtopicB = b.subtopic || '';
+          return subtopicA.localeCompare(subtopicB);
+        });
+      case 'subtopic':
+        return sorted.sort((a, b) => {
+          const subtopicA = a.subtopic || '';
+          const subtopicB = b.subtopic || '';
+          if (subtopicA !== subtopicB) return subtopicA.localeCompare(subtopicB);
+          // If same subtopic, sort by topic
+          return a.topic - b.topic;
+        });
+      case 'difficulty':
+        const difficultyOrder = { 'Easy': 1, 'Medium': 2, 'Hard': 3 };
+        return sorted.sort((a, b) => {
+          const diffA = difficultyOrder[a.difficulty] || 4;
+          const diffB = difficultyOrder[b.difficulty] || 4;
+          return diffA - diffB;
+        });
+      case 'level':
+        const levelOrder = { 'Core': 1, 'Advanced Resident': 2 };
+        return sorted.sort((a, b) => {
+          const levelA = levelOrder[a.level] || 3;
+          const levelB = levelOrder[b.level] || 3;
+          return levelA - levelB;
+        });
+      default:
+        return sorted; // Default order (as they appear in array)
+    }
+  };
+
+  // Get filtered and sorted questions
+  const filteredQuestions = getSortedQuestions(getFilteredQuestions());
+
+  // Update subtopic filter when topic changes
+  useEffect(() => {
+    if (filterTopic === 'All') {
+      setFilterSubtopic('All');
+    } else {
+      // Check if current subtopic filter is still valid for new topic
+      if (filterSubtopic !== 'All' && !getAvailableSubtopics.includes(filterSubtopic)) {
+        setFilterSubtopic('All');
+      }
+    }
+  }, [filterTopic, getAvailableSubtopics, filterSubtopic]);
+
   const score = calculateScore();
 
   return (
@@ -1756,6 +1965,92 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
             />
           </label>
         </div>
+      </div>
+
+      {/* Filter and Sort Controls */}
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Filter by Topic */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Filter by Topic
+            </label>
+            <select
+              value={filterTopic}
+              onChange={(e) => setFilterTopic(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="All">All Topics</option>
+              {curriculumTopics.map(topic => (
+                <option key={topic.id} value={topic.id}>{topic.topic}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter by Subtopic */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Filter by Subtopic
+            </label>
+            <select
+              value={filterSubtopic}
+              onChange={(e) => setFilterSubtopic(e.target.value)}
+              disabled={filterTopic === 'All'}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                filterTopic === 'All' ? 'bg-gray-100 cursor-not-allowed' : ''
+              }`}
+            >
+              <option value="All">All Subtopics</option>
+              {getAvailableSubtopics.map(subtopic => (
+                <option key={subtopic} value={subtopic}>{subtopic}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sort By */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Sort By
+            </label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="default">Default Order</option>
+              <option value="topic">Topic</option>
+              <option value="subtopic">Subtopic</option>
+              <option value="difficulty">Difficulty</option>
+              <option value="level">Level</option>
+            </select>
+          </div>
+
+          {/* Results Count */}
+          <div className="flex items-end">
+            <div className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg">
+              <span className="text-sm text-gray-700">
+                Showing <span className="font-semibold">{filteredQuestions.length}</span> of{' '}
+                <span className="font-semibold">{questions.length}</span> questions
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Clear Filters Button */}
+        {(filterTopic !== 'All' || filterSubtopic !== 'All' || sortBy !== 'default') && (
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => {
+                setFilterTopic('All');
+                setFilterSubtopic('All');
+                setSortBy('default');
+              }}
+              className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Clear Filters & Sort
+            </button>
+          </div>
+        )}
       </div>
 
       {showResults && (
@@ -1896,16 +2191,31 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
       )}
 
       <div className="space-y-6">
-        {questions.map((question, index) => (
+        {filteredQuestions.length === 0 ? (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+            <p className="text-yellow-800">No questions found matching the selected filters.</p>
+          </div>
+        ) : (
+          filteredQuestions.map((question, index) => (
           <div key={question.id} className="bg-white rounded-lg shadow-lg p-6">
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-gray-900">
                   Question {index + 1}: {question.question}
                 </h3>
-                {question.isCustom && (
-                  <span className="inline-block mt-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Custom Question</span>
-                )}
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {question.isCustom && (
+                    <span className="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Custom Question</span>
+                  )}
+                  <span className="inline-block px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full">
+                    {curriculumTopics.find(t => t.id === question.topic)?.topic || `Topic ${question.topic}`}
+                  </span>
+                  {question.subtopic && (
+                    <span className="inline-block px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+                      {question.subtopic}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex items-start space-x-2">
                 <span className={`px-2 py-1 rounded-full text-xs ${question.level === 'Core' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
@@ -1918,22 +2228,20 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
                   }`}>
                   {question.difficulty}
                 </span>
-                {question.isCustom && (
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleEditQuestion(question)}
-                      className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteQuestion(question.id)}
-                      className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => handleEditQuestion(question)}
+                    className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteQuestion(question.id)}
+                    className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1969,7 +2277,8 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
               </div>
             )}
           </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
