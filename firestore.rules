@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Board Questions
+    match /boardQuestions/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    // Resources
+    match /resources/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    // Schedule
+    match /schedule/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    // Projects
+    match /projects/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    // Image Bank - metadata stored in Firestore
+    match /imageBank/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
+
