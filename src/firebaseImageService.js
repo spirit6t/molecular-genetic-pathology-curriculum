@@ -25,16 +25,30 @@ const STORAGE_FOLDER = 'images';
  */
 export const uploadImage = async (imageFile, metadata) => {
     try {
+        console.log('uploadImage called with:', { fileName: imageFile.name, fileSize: imageFile.size, metadata });
+        
+        // Check if storage is initialized
+        if (!storage) {
+            throw new Error('Firebase Storage is not initialized. Please check firebase.js configuration.');
+        }
+        
         // Create a unique filename
         const timestamp = Date.now();
         const fileName = `${timestamp}_${imageFile.name}`;
-        const storageRef = ref(storage, `${STORAGE_FOLDER}/${fileName}`);
+        const storagePath = `${STORAGE_FOLDER}/${fileName}`;
+        console.log('Creating storage reference:', storagePath);
+        
+        const storageRef = ref(storage, storagePath);
+        console.log('Storage ref created, uploading bytes...');
 
         // Upload image to Firebase Storage
+        console.log('Uploading to Firebase Storage...');
         const snapshot = await uploadBytes(storageRef, imageFile);
+        console.log('Upload successful, getting download URL...');
         
         // Get download URL
         const downloadURL = await getDownloadURL(snapshot.ref);
+        console.log('Download URL obtained:', downloadURL);
 
         // Save metadata to Firestore
         const imageData = {
@@ -45,15 +59,22 @@ export const uploadImage = async (imageFile, metadata) => {
             downloadURL: downloadURL,
             uploadedAt: Timestamp.now()
         };
-
+        
+        console.log('Saving metadata to Firestore...', imageData);
         const docRef = await addDoc(collection(db, COLLECTION_NAME), imageData);
+        console.log('Metadata saved to Firestore with ID:', docRef.id);
         
         return {
             id: docRef.id,
             ...imageData
         };
     } catch (error) {
-        console.error('Error uploading image:', error);
+        console.error('Error uploading image - Details:', {
+            code: error.code,
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         throw error;
     }
 };

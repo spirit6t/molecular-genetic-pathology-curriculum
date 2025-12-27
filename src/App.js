@@ -1124,6 +1124,7 @@ function ResourcesView() {
 
     try {
       setIsSaving(true);
+      console.log('Starting image upload...', { file: newImage.file.name, topic: newImage.topic });
       
       const metadata = {
         topic: newImage.topic,
@@ -1132,8 +1133,10 @@ function ResourcesView() {
         source: newImage.source || ''
       };
 
+      console.log('Uploading to Firebase Storage...');
       // Upload to Firebase Storage
       const uploadedImage = await uploadImage(newImage.file, metadata);
+      console.log('Upload successful:', uploadedImage);
 
       // Update state
       setImages(prev => {
@@ -1160,16 +1163,29 @@ function ResourcesView() {
       
       alert('Image uploaded successfully!');
     } catch (error) {
-      console.error('Failed to upload image:', error);
-      let errorMessage = 'Failed to upload image. ';
-      if (error.code === 'storage/unauthorized') {
-        errorMessage += 'Storage access denied. Please check Firebase Storage rules.';
+      console.error('Failed to upload image - Full error:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      
+      let errorMessage = 'Failed to upload image.\n\n';
+      if (error.code === 'storage/unauthorized' || error.code === 'storage/unauthorized') {
+        errorMessage += 'Storage access denied. Please check Firebase Storage rules.\n';
+        errorMessage += 'Make sure Storage is enabled in Firebase Console.';
       } else if (error.code === 'storage/canceled') {
         errorMessage += 'Upload was canceled.';
-      } else if (error.code === 'storage/unknown') {
-        errorMessage += 'Unknown error occurred. Please check Firebase Storage is enabled.';
+      } else if (error.code === 'storage/unknown' || error.code === 'storage/invalid-argument') {
+        errorMessage += 'Storage error. Please check:\n';
+        errorMessage += '1. Firebase Storage is enabled\n';
+        errorMessage += '2. Storage rules allow write access\n';
+        errorMessage += `3. Error: ${error.message}`;
+      } else if (error.message) {
+        errorMessage += `Error: ${error.message}`;
+        if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+          errorMessage += '\n\nPlease enable Firebase Storage in the console.';
+        }
       } else {
-        errorMessage += `Error: ${error.message || 'Please try again.'}`;
+        errorMessage += `Unknown error. Check browser console for details.\nError code: ${error.code || 'N/A'}`;
       }
       alert(errorMessage);
     } finally {
