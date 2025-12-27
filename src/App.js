@@ -1161,7 +1161,17 @@ function ResourcesView() {
       alert('Image uploaded successfully!');
     } catch (error) {
       console.error('Failed to upload image:', error);
-      alert('Failed to upload image. Please try again.');
+      let errorMessage = 'Failed to upload image. ';
+      if (error.code === 'storage/unauthorized') {
+        errorMessage += 'Storage access denied. Please check Firebase Storage rules.';
+      } else if (error.code === 'storage/canceled') {
+        errorMessage += 'Upload was canceled.';
+      } else if (error.code === 'storage/unknown') {
+        errorMessage += 'Unknown error occurred. Please check Firebase Storage is enabled.';
+      } else {
+        errorMessage += `Error: ${error.message || 'Please try again.'}`;
+      }
+      alert(errorMessage);
     } finally {
       setIsSaving(false);
     }
