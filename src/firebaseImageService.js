@@ -7,6 +7,7 @@ import {
     getDocs,
     query,
     orderBy,
+    updateDoc,
     Timestamp
 } from 'firebase/firestore';
 import {
@@ -101,6 +102,35 @@ export const getAllImages = async () => {
         return images;
     } catch (error) {
         console.error('Error fetching images:', error);
+        throw error;
+    }
+};
+
+/**
+ * Update image metadata in Firestore (does not update the image file itself)
+ */
+export const updateImage = async (imageId, metadata) => {
+    try {
+        console.log('updateImage called with:', { imageId, metadata });
+        
+        // Prepare update data (exclude fields that shouldn't be updated)
+        const updateData = {
+            topic: metadata.topic,
+            subtopic: metadata.subtopic || '',
+            description: metadata.description || '',
+            source: metadata.source || ''
+        };
+
+        console.log('Updating image metadata in Firestore...', updateData);
+        await updateDoc(doc(db, COLLECTION_NAME, imageId), updateData);
+        console.log('Image metadata updated successfully');
+
+        return {
+            id: imageId,
+            ...updateData
+        };
+    } catch (error) {
+        console.error('Error updating image:', error);
         throw error;
     }
 };
