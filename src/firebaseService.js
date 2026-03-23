@@ -6,11 +6,13 @@ import {
     deleteDoc,
     doc,
     getDocs,
+    getDoc,
     query,
     orderBy,
     Timestamp
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, storage } from './firebase';
+import { deleteObject, ref } from 'firebase/storage';
 
 const COLLECTION_NAME = 'boardQuestions';
 
@@ -87,7 +89,18 @@ export const updateQuestion = async (questionId, updatedData) => {
 export const deleteQuestion = async (questionId) => {
     try {
         const docRef = doc(db, COLLECTION_NAME, questionId);
+        const snapshot = await getDoc(docRef);
+        const data = snapshot.data();
+
+        // If the question has an associated image, delete it from Storage.
+        const imageStoragePath = data?.imageStoragePath;
+
         await deleteDoc(docRef);
+
+        if (imageStoragePath) {
+            const storageRef = ref(storage, imageStoragePath);
+            await deleteObject(storageRef);
+        }
     } catch (error) {
         console.error('Error deleting question:', error);
         throw error;

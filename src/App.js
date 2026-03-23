@@ -13,8 +13,10 @@ import {
 import {
   uploadImage,
   getAllImages,
-  deleteImage as deleteImageFromFirebase
+  deleteImage as deleteImageFromFirebase,
+  updateImage as updateImageInFirebase
 } from './firebaseImageService';
+import { uploadQuestionImage } from './firebaseQuestionImageService';
 import {
   fetchProjects,
   addProject as addProjectToFirebase,
@@ -887,6 +889,7 @@ function ResourcesView() {
   const [editingResource, setEditingResource] = useState(null);
   const [activeTab, setActiveTab] = useState('resources'); // 'resources' or 'images'
   const [showImageUpload, setShowImageUpload] = useState(false);
+  const [editingImage, setEditingImage] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageFilterTopic, setImageFilterTopic] = useState('All');
   const [imageFilterSubtopic, setImageFilterSubtopic] = useState('All');
@@ -1193,6 +1196,54 @@ function ResourcesView() {
     }
   };
 
+  const handleEditImage = (image) => {
+    setEditingImage({
+      id: image.id,
+      topic: image.topic,
+      subtopic: image.subtopic || '',
+      description: image.description || '',
+      source: image.source || ''
+    });
+  };
+
+  const handleSaveImageEdit = async () => {
+    if (!editingImage || !editingImage.topic) {
+      alert('Please select a topic');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      // Update in Firebase
+      await updateImageInFirebase(editingImage.id, {
+        topic: editingImage.topic,
+        subtopic: editingImage.subtopic || '',
+        description: editingImage.description || '',
+        source: editingImage.source || ''
+      });
+
+      // Update state
+      setImages(prev => {
+        const updated = prev.map(img => 
+          img.id === editingImage.id
+            ? { ...img, ...editingImage }
+            : img
+        );
+        localStorage.setItem('imageBank', JSON.stringify(updated));
+        return updated;
+      });
+
+      setEditingImage(null);
+      alert('Image updated successfully!');
+    } catch (error) {
+      console.error('Failed to update image:', error);
+      alert('Failed to update image. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleDeleteImage = async (image) => {
     if (!window.confirm('Are you sure you want to delete this image?')) {
       return;
@@ -1324,6 +1375,80 @@ function ResourcesView() {
       {/* Image Bank Tab */}
       {activeTab === 'images' && (
         <>
+          {editingImage && (
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Edit Image</h3>
+              <div className="space-y-4">
+                {/* Topic Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Topic *</label>
+                  <select
+                    value={editingImage.topic}
+                    onChange={(e) => setEditingImage({ ...editingImage, topic: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  >
+                    {curriculumTopics.map(topic => (
+                      <option key={topic.id} value={topic.id}>{topic.topic}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Subtopic Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Subtopic</label>
+                  <input
+                    type="text"
+                    value={editingImage.subtopic}
+                    onChange={(e) => setEditingImage({ ...editingImage, subtopic: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="e.g., Hardy Weinberg Principle"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                  <textarea
+                    value={editingImage.description}
+                    onChange={(e) => setEditingImage({ ...editingImage, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    rows={3}
+                    placeholder="Optional description of the image..."
+                  />
+                </div>
+
+                {/* Source */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Source</label>
+                  <input
+                    type="text"
+                    value={editingImage.source}
+                    onChange={(e) => setEditingImage({ ...editingImage, source: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="e.g., Textbook name, Journal article, Website URL, etc."
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setEditingImage(null)}
+                    className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveImageEdit}
+                    disabled={isSaving}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {showImageUpload && (
             <div className="bg-white rounded-lg shadow-lg p-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-4">Upload Image</h3>
@@ -1524,15 +1649,26 @@ function ResourcesView() {
                       <p className="text-xs text-blue-600 mb-2 font-medium">Source: {image.source}</p>
                     )}
                     <p className="text-xs text-gray-500 mb-2">{image.fileName}</p>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteImage(image);
-                      }}
-                      className="w-full px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditImage(image);
+                        }}
+                        className="flex-1 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteImage(image);
+                        }}
+                        className="flex-1 px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -2223,8 +2359,21 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
     topic: 1,
     subtopic: '',
     level: 'Core',
-    difficulty: 'Medium'
+    difficulty: 'Medium',
+    imageUrl: '',
+    imageStoragePath: ''
   });
+  const [questionImageFile, setQuestionImageFile] = useState(null);
+  const [questionImagePreview, setQuestionImagePreview] = useState('');
+  const [questionImagePreviewObjectUrl, setQuestionImagePreviewObjectUrl] = useState(null);
+
+  useEffect(() => {
+    return () => {
+      if (questionImagePreviewObjectUrl) {
+        URL.revokeObjectURL(questionImagePreviewObjectUrl);
+      }
+    };
+  }, [questionImagePreviewObjectUrl]);
 
   const handleAnswerSelect = (questionId, answerIndex) => {
     setUserAnswers(prev => ({
@@ -2257,14 +2406,22 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
     }
 
     try {
+      const payload = { ...newQuestion };
+
+      if (questionImageFile) {
+        const uploaded = await uploadQuestionImage(questionImageFile);
+        payload.imageUrl = uploaded.imageUrl;
+        payload.imageStoragePath = uploaded.storagePath;
+      }
+
       if (editingQuestion) {
         // Update existing question
-        await onUpdateQuestion(editingQuestion.id, newQuestion);
+        await onUpdateQuestion(editingQuestion.id, payload);
         alert('Question updated successfully!');
         setEditingQuestion(null);
       } else {
         // Add new question
-        await onAddQuestion(newQuestion);
+        await onAddQuestion(payload);
         alert('Question added successfully!');
       }
 
@@ -2277,8 +2434,13 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
         topic: 1,
         subtopic: '',
         level: 'Core',
-        difficulty: 'Medium'
+        difficulty: 'Medium',
+        imageUrl: '',
+        imageStoragePath: ''
       });
+      setQuestionImageFile(null);
+      setQuestionImagePreview('');
+      setQuestionImagePreviewObjectUrl(null);
       setShowAddForm(false);
     } catch (error) {
       // If onAddQuestion threw, our code already saved to localStorage as fallback
@@ -2288,6 +2450,9 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
   };
 
   const handleEditQuestion = (question) => {
+    if (questionImagePreviewObjectUrl) {
+      URL.revokeObjectURL(questionImagePreviewObjectUrl);
+    }
     setNewQuestion({
       question: question.question,
       options: question.options,
@@ -2296,9 +2461,14 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
       topic: question.topic,
       subtopic: question.subtopic || '',
       level: question.level || 'Core',
-      difficulty: question.difficulty || 'Medium'
+      difficulty: question.difficulty || 'Medium',
+      imageUrl: question.imageUrl || '',
+      imageStoragePath: question.imageStoragePath || ''
     });
     setEditingQuestion(question);
+    setQuestionImageFile(null);
+    setQuestionImagePreview(question.imageUrl || '');
+    setQuestionImagePreviewObjectUrl(null);
     setShowAddForm(true);
   };
 
@@ -2318,9 +2488,14 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
       topic: 1,
       subtopic: '',
       level: 'Core',
-      difficulty: 'Medium'
+      difficulty: 'Medium',
+      imageUrl: '',
+      imageStoragePath: ''
     });
     setEditingQuestion(null);
+    setQuestionImageFile(null);
+    setQuestionImagePreview('');
+    setQuestionImagePreviewObjectUrl(null);
     setShowAddForm(false);
   };
 
@@ -2355,7 +2530,9 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
                 topic: q.topic,
                 subtopic: q.subtopic || '',
                 level: q.level || 'Core',
-                difficulty: q.difficulty || 'Medium'
+                difficulty: q.difficulty || 'Medium',
+                imageUrl: q.imageUrl || '',
+                imageStoragePath: q.imageStoragePath || ''
               });
             });
             alert(`Successfully imported ${importedQuestions.length} questions!`);
@@ -2623,6 +2800,45 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
               />
             </div>
 
+            {/* Question Image */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Question Image</label>
+              <input
+                id="question-image-upload-input"
+                type="file"
+                accept="image/*"
+                className="w-full text-sm text-gray-700"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) {
+                    setQuestionImageFile(null);
+                    setQuestionImagePreview('');
+                    setQuestionImagePreviewObjectUrl(null);
+                    return;
+                  }
+
+                  if (questionImagePreviewObjectUrl) {
+                    URL.revokeObjectURL(questionImagePreviewObjectUrl);
+                  }
+
+                  const objUrl = URL.createObjectURL(file);
+                  setQuestionImageFile(file);
+                  setQuestionImagePreview(objUrl);
+                  setQuestionImagePreviewObjectUrl(objUrl);
+                }}
+              />
+
+              {questionImagePreview && (
+                <div className="mt-3">
+                  <img
+                    src={questionImagePreview}
+                    alt="Selected question illustration"
+                    className="max-h-64 w-auto rounded-lg border border-gray-200 object-contain bg-gray-50"
+                  />
+                </div>
+              )}
+            </div>
+
             {/* Options */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Answer Options *</label>
@@ -2788,6 +3004,16 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
                 </div>
               </div>
             </div>
+
+            {question.imageUrl && (
+              <div className="mb-4">
+                <img
+                  src={question.imageUrl}
+                  alt="Question illustration"
+                  className="max-h-64 w-auto rounded-lg border border-gray-200 object-contain bg-gray-50"
+                />
+              </div>
+            )}
 
             <div className="space-y-2 mb-4">
               {question.options.map((option, optionIndex) => (
