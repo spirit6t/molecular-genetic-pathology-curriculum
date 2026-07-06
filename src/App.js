@@ -2512,6 +2512,54 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
     alert(`Exported ${customQuestionsOnly.length} custom questions to customQuestions.json`);
   };
 
+  // Normalize a question from an imported file into the shape the app renders.
+  // Returns null if it can't be made renderable (no usable options).
+  const normalizeImportedQuestion = (q) => {
+    if (!q || typeof q !== 'object') return null;
+
+    // options may arrive as an array, or as a keyed object like { A: '...', B: '...' }
+    let options;
+    if (Array.isArray(q.options)) {
+      options = q.options;
+    } else if (q.options && typeof q.options === 'object') {
+      options = Object.keys(q.options).sort().map(k => q.options[k]);
+    } else {
+      return null;
+    }
+    options = options.filter(o => o != null && String(o).trim() !== '');
+    if (options.length === 0) return null;
+
+    // correctAnswer may be a numeric index, a letter ('A'), or the full answer text
+    let correctAnswer = q.correctAnswer;
+    if (typeof correctAnswer === 'string') {
+      const trimmed = correctAnswer.trim();
+      const byText = options.findIndex(o => String(o).trim() === trimmed);
+      if (byText >= 0) {
+        correctAnswer = byText;
+      } else if (/^[A-Za-z]$/.test(trimmed)) {
+        correctAnswer = trimmed.toUpperCase().charCodeAt(0) - 65; // A->0, B->1, ...
+      } else {
+        correctAnswer = Number(trimmed);
+      }
+    }
+    if (!Number.isInteger(correctAnswer) || correctAnswer < 0 || correctAnswer >= options.length) {
+      correctAnswer = 0;
+    }
+
+    return {
+      question: q.question,
+      options,
+      correctAnswer,
+      explanation: q.explanation || '',
+      topic: q.topic,
+      subtopic: q.subtopic || '',
+      level: q.level || 'Core',
+      difficulty: q.difficulty || 'Medium',
+      imageUrl: q.imageUrl || '',
+      imageStoragePath: q.imageStoragePath || ''
+    };
+  };
+
   const handleImportQuestions = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -2520,22 +2568,25 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
         try {
           const importedQuestions = JSON.parse(e.target.result);
           if (Array.isArray(importedQuestions)) {
-            // Add each imported question
-            importedQuestions.forEach(q => {
-              onAddQuestion({
-                question: q.question,
-                options: q.options,
-                correctAnswer: q.correctAnswer,
-                explanation: q.explanation || '',
-                topic: q.topic,
-                subtopic: q.subtopic || '',
-                level: q.level || 'Core',
-                difficulty: q.difficulty || 'Medium',
-                imageUrl: q.imageUrl || '',
-                imageStoragePath: q.imageStoragePath || ''
-              });
+            // Add each imported question (normalizing/validating shape)
+            let imported = 0;
+            const skipped = [];
+            importedQuestions.forEach((q, i) => {
+              const normalized = normalizeImportedQuestion(q);
+              if (!normalized) {
+                skipped.push(i + 1);
+                return;
+              }
+              onAddQuestion(normalized);
+              imported += 1;
             });
-            alert(`Successfully imported ${importedQuestions.length} questions!`);
+            let message = `Successfully imported ${imported} question${imported === 1 ? '' : 's'}!`;
+            if (skipped.length) {
+              message += `\n\nSkipped ${skipped.length} question(s) with an invalid format ` +
+                `(#${skipped.join(', ')}). Each question needs an "options" array and a ` +
+                `numeric "correctAnswer" index.`;
+            }
+            alert(message);
             // Reset file input
             event.target.value = '';
           } else {
@@ -3016,7 +3067,7 @@ function QuestionsView({ questions, onAddQuestion, onUpdateQuestion, onDeleteQue
             )}
 
             <div className="space-y-2 mb-4">
-              {question.options.map((option, optionIndex) => (
+              {(Array.isArray(question.options) ? question.options : []).map((option, optionIndex) => (
                 <label key={optionIndex} className="flex items-center space-x-3 cursor-pointer">
                   <input
                     type="radio"
